@@ -252,26 +252,40 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
     import torch
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f"🖥️  Using device: {device}")
-    if device == 'cuda' and torch.cuda.device_count() > 0:
+    
+    if device == 'cuda':
         try:
-            print(f"   GPU: {torch.cuda.get_device_name(0)}")
-            print(f"   Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
+            device_count = torch.cuda.device_count()
+            if device_count > 0:
+                print(f"   GPU: {torch.cuda.get_device_name(0)}")
+                print(f"   Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
+            else:
+                print(f"   GPU: CUDA available but no devices found")
+                device = 'cpu'  # Fallback to CPU
         except Exception as e:
-            print(f"   GPU: Available but info unavailable ({e})")
+            print(f"   GPU: Error accessing GPU info ({e})")
+            device = 'cpu'  # Fallback to CPU
     else:
         print(f"   GPU: Not available")
     
     # Initialize YOLO model with GPU support
     print(f"model_path = {model_path}")
-    if device == 'cuda':
-        # Initialize model directly on GPU
+    try:
+        if device == 'cuda':
+            # Initialize model directly on GPU
+            model = YOLO(model_path, task='detect', verbose=verbose)
+            model.to(device)
+            print(f"✅ Model initialized and moved to GPU")
+        else:
+            # Initialize model on CPU
+            model = YOLO(model_path, task='detect', verbose=verbose)
+            print(f"✅ Model initialized on CPU")
+    except Exception as e:
+        print(f"❌ Error initializing model: {e}")
+        print(f"   Falling back to CPU mode")
+        device = 'cpu'
         model = YOLO(model_path, task='detect', verbose=verbose)
-        model.to(device)
-        print(f"✅ Model initialized and moved to GPU")
-    else:
-        # Initialize model on CPU
-        model = YOLO(model_path, task='detect', verbose=verbose)
-        print(f"✅ Model initialized on CPU")
+        print(f"✅ Model initialized on CPU (fallback)")
     
     # Initialize tracker with default parameters
     # Note: ByteTrack parameters may vary by supervision version

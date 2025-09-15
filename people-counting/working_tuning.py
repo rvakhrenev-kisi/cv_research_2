@@ -51,13 +51,27 @@ class WorkingTuner:
         print(f"   🚀 Running: {' '.join(cmd)}")
         
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, cwd=os.getcwd())
+            print(f"   ⏱️  Starting video processing (this may take 1-2 minutes)...")
+            result = subprocess.run(cmd, capture_output=True, text=True, cwd=os.getcwd(), timeout=600)
             
             print(f"   📤 Return code: {result.returncode}")
+            
+            # Show more detailed output for debugging
+            if result.stdout:
+                print(f"   📤 STDOUT (first 500 chars):")
+                print(f"      {result.stdout[:500]}...")
+            if result.stderr:
+                print(f"   📤 STDERR:")
+                print(f"      {result.stderr}")
             
             # Parse the output for people counts
             counts = self.parse_people_counts(result.stdout)
             print(f"   📊 Detected counts: {counts}")
+            
+            # Check if video was actually processed
+            if result.returncode != 0:
+                print(f"   ❌ Command failed with return code {result.returncode}")
+                return 0.0, {}
             
             # Calculate accuracy for this single video
             expected = self.ground_truth["cisco"]["1"]["expected_people"]
@@ -83,24 +97,39 @@ class WorkingTuner:
         """Parse people counts from people_counter.py output"""
         counts = {"up": 0, "down": 0, "total": 0}
         
+        print(f"   🔍 Parsing output for counts...")
+        
         lines = output.split('\n')
         for line in lines:
+            line = line.strip()
+            print(f"      Checking line: {line[:100]}...")
+            
             if "People count - Up:" in line:
                 try:
                     counts["up"] = int(line.split("Up:")[1].strip())
-                except:
-                    pass
+                    print(f"      ✅ Found Up count: {counts['up']}")
+                except Exception as e:
+                    print(f"      ❌ Error parsing Up count: {e}")
             elif "People count - Down:" in line:
                 try:
                     counts["down"] = int(line.split("Down:")[1].strip())
-                except:
-                    pass
-            elif "Total:" in line:
+                    print(f"      ✅ Found Down count: {counts['down']}")
+                except Exception as e:
+                    print(f"      ❌ Error parsing Down count: {e}")
+            elif "Total:" in line and "people" in line.lower():
                 try:
                     counts["total"] = int(line.split("Total:")[1].strip())
-                except:
-                    pass
+                    print(f"      ✅ Found Total count: {counts['total']}")
+                except Exception as e:
+                    print(f"      ❌ Error parsing Total count: {e}")
+            elif "Total people" in line:
+                try:
+                    counts["total"] = int(line.split("Total people")[1].strip().split()[0])
+                    print(f"      ✅ Found Total people count: {counts['total']}")
+                except Exception as e:
+                    print(f"      ❌ Error parsing Total people count: {e}")
         
+        print(f"   📊 Final parsed counts: {counts}")
         return counts
     
     def test_confidence_range(self):

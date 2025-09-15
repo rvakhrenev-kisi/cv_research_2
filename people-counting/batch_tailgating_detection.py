@@ -122,8 +122,10 @@ class BatchTailgatingDetector:
             output_path = self.run_dir / output_name
             
             # Build command with CCTV-optimized parameters
+            # Use sys.executable to ensure we use the same Python as the current process
+            import sys
             cmd = [
-                "python", "people_counter.py",
+                sys.executable, "people_counter.py",
                 "--video", str(video_path),
                 "--model", model_path,
                 "--model-type", "yolo12",

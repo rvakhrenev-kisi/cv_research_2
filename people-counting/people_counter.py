@@ -258,12 +258,15 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
     
     # Initialize YOLO model with GPU support
     print(f"model_path = {model_path}")
-    model = YOLO(model_path, task='detect', verbose=verbose)
-    
-    # Move model to GPU if available
     if device == 'cuda':
+        # Initialize model directly on GPU
+        model = YOLO(model_path, task='detect', verbose=verbose)
         model.to(device)
-        print(f"✅ Model moved to GPU")
+        print(f"✅ Model initialized and moved to GPU")
+    else:
+        # Initialize model on CPU
+        model = YOLO(model_path, task='detect', verbose=verbose)
+        print(f"✅ Model initialized on CPU")
     
     # Initialize tracker with default parameters
     # Note: ByteTrack parameters may vary by supervision version

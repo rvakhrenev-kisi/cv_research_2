@@ -311,12 +311,12 @@ class BatchTailgatingDetectorV2:
         
         # Save JSON summary
         summary_file = self.run_dir / "processing_summary.json"
-        with open(summary_file, 'w') as f:
-            json.dump(summary, f, indent=2)
+        with open(summary_file, 'w', encoding='utf-8') as f:
+            json.dump(summary, f, indent=2, ensure_ascii=False)
         
         # Save human-readable summary
         txt_file = self.run_dir / "processing_summary.txt"
-        with open(txt_file, 'w') as f:
+        with open(txt_file, 'w', encoding='utf-8') as f:
             f.write("BATCH TAILGATING DETECTION RESULTS\n")
             f.write("=" * 50 + "\n\n")
             f.write(f"Timestamp: {summary['timestamp']}\n")

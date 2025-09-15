@@ -30,6 +30,21 @@ class BatchTailgatingDetector:
         
         print(f"📁 Run directory: {self.run_dir}")
         
+        # Check for GPU availability
+        try:
+            import torch
+            self.gpu_available = torch.cuda.is_available()
+            if self.gpu_available:
+                self.gpu_name = torch.cuda.get_device_name(0)
+                self.gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1024**3
+            else:
+                self.gpu_name = "None"
+                self.gpu_memory = 0
+        except ImportError:
+            self.gpu_available = False
+            self.gpu_name = "PyTorch not available"
+            self.gpu_memory = 0
+        
         # Tuned parameters for CCTV ceiling cameras
         self.tuned_parameters = {
             "model_type": "YOLOv10x",
@@ -41,7 +56,10 @@ class BatchTailgatingDetector:
             "track_buffer": 30,  # Buffer for tracking
             "match_thresh": 0.8,  # Matching threshold for tracking
             "frame_rate": 30,  # Expected frame rate
-            "optimization": "CCTV ceiling cameras"
+            "optimization": "CCTV ceiling cameras",
+            "gpu_available": self.gpu_available,
+            "gpu_name": self.gpu_name,
+            "gpu_memory_gb": round(self.gpu_memory, 1)
         }
     
     def load_line_config(self, dataset):
@@ -181,6 +199,7 @@ class BatchTailgatingDetector:
         print(f"   Confidence: {confidence} (optimized for CCTV ceiling cameras)")
         print(f"   Output Quality: Original resolution")
         print(f"   Optimized for: Ceiling-mounted CCTV cameras")
+        print(f"   GPU: {self.gpu_name} ({self.gpu_memory:.1f} GB)" if self.gpu_available else "   GPU: Not available")
         print(f"   Output: {self.run_dir}")
         print()
         

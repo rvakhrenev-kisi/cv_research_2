@@ -248,9 +248,22 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
     # Use the LineCounter approach
     line_counter = LineCounter(line_start, line_end)
     
-    # Initialize YOLO model
+    # Check for GPU availability
+    import torch
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    print(f"🖥️  Using device: {device}")
+    if device == 'cuda':
+        print(f"   GPU: {torch.cuda.get_device_name(0)}")
+        print(f"   Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
+    
+    # Initialize YOLO model with GPU support
     print(f"model_path = {model_path}")
     model = YOLO(model_path, task='detect', verbose=verbose)
+    
+    # Move model to GPU if available
+    if device == 'cuda':
+        model.to(device)
+        print(f"✅ Model moved to GPU")
     
     # Initialize tracker with default parameters
     # Note: ByteTrack parameters may vary by supervision version
@@ -290,7 +303,8 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
                           verbose=False,
                           imgsz=640,  # Standard size for better detection
                           iou=0.3,    # Lower IoU threshold to prevent merging close people
-                          agnostic_nms=False)  # Class-aware NMS
+                          agnostic_nms=False,  # Class-aware NMS
+                          device=device)  # Use GPU if available
             
             # Get detections
             detections = sv.Detections.from_ultralytics(results[0])

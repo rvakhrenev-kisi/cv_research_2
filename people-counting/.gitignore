@@ -5,6 +5,8 @@ sample_pedestrians.mp4
 
 output/*
 !output/.gitkeep
+outputs/*
+!outputs/.gitkeep
 input/*
 !input/.gitkeep
 models/*

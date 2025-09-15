@@ -252,8 +252,13 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
     print(f"model_path = {model_path}")
     model = YOLO(model_path, task='detect', verbose=verbose)
     
-    # Initialize tracker
-    tracker = sv.ByteTrack()
+    # Initialize tracker with improved parameters for CCTV footage
+    tracker = sv.ByteTrack(
+        track_thresh=0.5,  # Higher confidence for tracking
+        track_buffer=30,   # Buffer for tracking
+        match_thresh=0.8,  # Matching threshold
+        frame_rate=fps     # Use actual frame rate
+    )
     
     # Get total frame count for progress bar
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -275,9 +280,16 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
             progress_bar.update(1)
             consecutive_errors = 0  # Reset error counter on successful frame read
         
-            # Run YOLO inference on the frame
+            # Run YOLO inference on the frame with CCTV optimizations
             # Ensure confidence is a Python native float, not float32
-            results = model(frame, conf=float(confidence), classes=classes, verbose=False)
+            # Use lower confidence and add imgsz parameter for better CCTV detection
+            results = model(frame, 
+                          conf=float(confidence), 
+                          classes=classes, 
+                          verbose=False,
+                          imgsz=640,  # Standard size for better detection
+                          iou=0.3,    # Lower IoU threshold to prevent merging close people
+                          agnostic_nms=False)  # Class-aware NMS
             
             # Get detections
             detections = sv.Detections.from_ultralytics(results[0])

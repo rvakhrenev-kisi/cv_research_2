@@ -99,15 +99,15 @@ class BatchTailgatingDetector:
         
         return up_count, down_count, total_count
 
-    def process_video(self, video_path, dataset, line_config, model_path, confidence=0.2):
-        """Process a single video with improved people counting."""
+    def process_video(self, video_path, dataset, line_config, model_path, confidence=0.1):
+        """Process a single video with CCTV-optimized parameters."""
         try:
             # Create output filename
             video_name = video_path.stem
             output_name = f"{dataset}_{video_name}.mp4"
             output_path = self.run_dir / output_name
             
-            # Build command with improved parameters
+            # Build command with CCTV-optimized parameters
             cmd = [
                 "python", "people_counter.py",
                 "--video", str(video_path),
@@ -115,7 +115,7 @@ class BatchTailgatingDetector:
                 "--model-type", "yolo12",
                 "--line-start", str(line_config["x1"]), str(line_config["y1"]),
                 "--line-end", str(line_config["x2"]), str(line_config["y2"]),
-                "--confidence", str(confidence),
+                "--confidence", str(confidence),  # Much lower confidence for CCTV
                 "--output", str(output_path),
                 "--output-height", "0",  # 0 = original resolution for better quality
                 "--verbose"  # Enable verbose output to get counts
@@ -148,12 +148,13 @@ class BatchTailgatingDetector:
             print(f"   ❌ Exception: {e}")
             return False, {"error": str(e)}
     
-    def run_batch_detection(self, model_size="n", confidence=0.2):
-        """Run batch detection on all videos with improved settings."""
-        print(f"🚀 Starting improved batch tailgating detection")
+    def run_batch_detection(self, model_size="n", confidence=0.1):
+        """Run batch detection optimized for CCTV ceiling cameras."""
+        print(f"🚀 Starting CCTV-optimized batch tailgating detection")
         print(f"   Model: YOLOv8{model_size}")
-        print(f"   Confidence: {confidence} (lowered for better detection)")
+        print(f"   Confidence: {confidence} (very low for CCTV ceiling cameras)")
         print(f"   Output Quality: Original resolution")
+        print(f"   Optimized for: Ceiling-mounted CCTV cameras")
         print(f"   Output: {self.run_dir}")
         print()
         
@@ -247,10 +248,10 @@ class BatchTailgatingDetector:
 
 def main():
     parser = argparse.ArgumentParser(description="Batch tailgating detection for Cisco and Vortex videos")
-    parser.add_argument("--model-size", choices=["n", "s", "m", "l", "x"], default="n",
-                       help="YOLOv10 model size (default: n)")
-    parser.add_argument("--confidence", type=float, default=0.2,
-                       help="Detection confidence threshold (default: 0.2, lowered for better detection)")
+    parser.add_argument("--model-size", choices=["n", "s", "m", "l", "x"], default="x",
+                       help="YOLOv10 model size (default: x for best accuracy)")
+    parser.add_argument("--confidence", type=float, default=0.1,
+                       help="Detection confidence threshold (default: 0.1, optimized for CCTV ceiling cameras)")
     parser.add_argument("--config-dir", default="configs",
                        help="Directory containing line configurations (default: configs)")
     parser.add_argument("--input-dir", default="input",

@@ -29,6 +29,20 @@ class BatchTailgatingDetector:
         self.run_dir.mkdir(exist_ok=True)
         
         print(f"📁 Run directory: {self.run_dir}")
+        
+        # Tuned parameters for CCTV ceiling cameras
+        self.tuned_parameters = {
+            "model_type": "YOLOv10x",
+            "confidence_threshold": 0.1,
+            "input_size": 640,
+            "iou_threshold": 0.3,  # Lower IoU to prevent merging close people
+            "agnostic_nms": False,  # Keep class-specific NMS
+            "tracking_confidence": 0.5,  # Higher confidence for tracking
+            "track_buffer": 30,  # Buffer for tracking
+            "match_thresh": 0.8,  # Matching threshold for tracking
+            "frame_rate": 30,  # Expected frame rate
+            "optimization": "CCTV ceiling cameras"
+        }
     
     def load_line_config(self, dataset):
         """Load line configuration for a dataset."""
@@ -148,15 +162,18 @@ class BatchTailgatingDetector:
             print(f"   ❌ Exception: {e}")
             return False, {"error": str(e)}
     
-    def run_batch_detection(self, model_size="n", confidence=0.1):
+    def run_batch_detection(self, model_size="x", confidence=0.1):
         """Run batch detection optimized for CCTV ceiling cameras."""
         print(f"🚀 Starting CCTV-optimized batch tailgating detection")
-        print(f"   Model: YOLOv8{model_size}")
-        print(f"   Confidence: {confidence} (very low for CCTV ceiling cameras)")
+        print(f"   Model: YOLOv10{model_size}")
+        print(f"   Confidence: {confidence} (optimized for CCTV ceiling cameras)")
         print(f"   Output Quality: Original resolution")
         print(f"   Optimized for: Ceiling-mounted CCTV cameras")
         print(f"   Output: {self.run_dir}")
         print()
+        
+        # Update tuned parameters with current run settings
+        self.tuned_parameters["confidence_threshold"] = confidence
         
         # Check if model exists (try YOLOv10 first, fallback to YOLOv8)
         model_path = f"models/yolov10{model_size}.pt"

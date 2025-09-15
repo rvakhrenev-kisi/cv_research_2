@@ -1,0 +1,100 @@
+{
+  "timestamp": "2025-09-15T13:54:07.170816",
+  "run_directory": "outputs/run_20250915_135151",
+  "results": {
+    "cisco": {
+      "success": 5,
+      "failed": 0,
+      "files": [
+        {
+          "input": "../cisco/1.mp4",
+          "success": true,
+          "output": "cisco_1.mp4",
+          "up_count": 0,
+          "down_count": 0,
+          "total_count": 0
+        },
+        {
+          "input": "../cisco/2.mp4",
+          "success": true,
+          "output": "cisco_2.mp4",
+          "up_count": 0,
+          "down_count": 0,
+          "total_count": 0
+        },
+        {
+          "input": "../cisco/3.mp4",
+          "success": true,
+          "output": "cisco_3.mp4",
+          "up_count": 0,
+          "down_count": 0,
+          "total_count": 0
+        },
+        {
+          "input": "../cisco/4.mp4",
+          "success": true,
+          "output": "cisco_4.mp4",
+          "up_count": 0,
+          "down_count": 0,
+          "total_count": 0
+        },
+        {
+          "input": "../cisco/5.mp4",
+          "success": true,
+          "output": "cisco_5.mp4",
+          "up_count": 1,
+          "down_count": 0,
+          "total_count": 1
+        }
+      ],
+      "total_people": 1
+    },
+    "vortex": {
+      "success": 5,
+      "failed": 0,
+      "files": [
+        {
+          "input": "../vortex/1.mp4",
+          "success": true,
+          "output": "vortex_1.mp4",
+          "up_count": 0,
+          "down_count": 0,
+          "total_count": 0
+        },
+        {
+          "input": "../vortex/2.mp4",
+          "success": true,
+          "output": "vortex_2.mp4",
+          "up_count": 0,
+          "down_count": 0,
+          "total_count": 0
+        },
+        {
+          "input": "../vortex/3.mp4",
+          "success": true,
+          "output": "vortex_3.mp4",
+          "up_count": 0,
+          "down_count": 0,
+          "total_count": 0
+        },
+        {
+          "input": "../vortex/4.mp4",
+          "success": true,
+          "output": "vortex_4.mp4",
+          "up_count": 0,
+          "down_count": 1,
+          "total_count": 1
+        },
+        {
+          "input": "../vortex/5.mp4",
+          "success": true,
+          "output": "vortex_5.mp4",
+          "up_count": 1,
+          "down_count": 0,
+          "total_count": 1
+        }
+      ],
+      "total_people": 2
+    }
+  }
+}

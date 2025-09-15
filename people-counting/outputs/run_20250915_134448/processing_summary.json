@@ -1,0 +1,78 @@
+{
+  "timestamp": "2025-09-15T13:47:03.018217",
+  "run_directory": "outputs/run_20250915_134448",
+  "results": {
+    "cisco": {
+      "success": 5,
+      "failed": 0,
+      "files": [
+        {
+          "input": "../cisco/1.mp4",
+          "output": "cisco_1.mp4",
+          "success": true,
+          "error": null
+        },
+        {
+          "input": "../cisco/2.mp4",
+          "output": "cisco_2.mp4",
+          "success": true,
+          "error": null
+        },
+        {
+          "input": "../cisco/3.mp4",
+          "output": "cisco_3.mp4",
+          "success": true,
+          "error": null
+        },
+        {
+          "input": "../cisco/4.mp4",
+          "output": "cisco_4.mp4",
+          "success": true,
+          "error": null
+        },
+        {
+          "input": "../cisco/5.mp4",
+          "output": "cisco_5.mp4",
+          "success": true,
+          "error": null
+        }
+      ]
+    },
+    "vortex": {
+      "success": 5,
+      "failed": 0,
+      "files": [
+        {
+          "input": "../vortex/1.mp4",
+          "output": "vortex_1.mp4",
+          "success": true,
+          "error": null
+        },
+        {
+          "input": "../vortex/2.mp4",
+          "output": "vortex_2.mp4",
+          "success": true,
+          "error": null
+        },
+        {
+          "input": "../vortex/3.mp4",
+          "output": "vortex_3.mp4",
+          "success": true,
+          "error": null
+        },
+        {
+          "input": "../vortex/4.mp4",
+          "output": "vortex_4.mp4",
+          "success": true,
+          "error": null
+        },
+        {
+          "input": "../vortex/5.mp4",
+          "output": "vortex_5.mp4",
+          "success": true,
+          "error": null
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,138 @@
+{
+  "timestamp": "2025-09-15T13:41:39.351762",
+  "run_directory": "outputs/run_20250915_134108",
+  "results": {
+    "cisco": {
+      "success": 0,
+      "failed": 10,
+      "files": [
+        {
+          "input": "input/1.mp4",
+          "output": null,
+          "success": false,
+          "error": "usage: people_counter.py [-h] --video VIDEO [--model MODEL]\n                         [--model-type {yolo12}]\n                         [--line-start LINE_START LINE_START]\n                         [--line-end LINE_END LINE_END]\n                         [--confidence CONFIDENCE] [--output OUTPUT]\n                         [--output-height OUTPUT_HEIGHT] [--show] [--verbose]\n                         [--classes CLASSES [CLASSES ...]]\npeople_counter.py: error: argument --model-type: invalid choice: 'yolov10' (choose from yolo12)\n"
+        },
+        {
+          "input": "input/2.mp4",
+          "output": null,
+          "success": false,
+          "error": "usage: people_counter.py [-h] --video VIDEO [--model MODEL]\n                         [--model-type {yolo12}]\n                         [--line-start LINE_START LINE_START]\n                         [--line-end LINE_END LINE_END]\n                         [--confidence CONFIDENCE] [--output OUTPUT]\n                         [--output-height OUTPUT_HEIGHT] [--show] [--verbose]\n                         [--classes CLASSES [CLASSES ...]]\npeople_counter.py: error: argument --model-type: invalid choice: 'yolov10' (choose from yolo12)\n"
+        },
+        {
+          "input": "input/3.mp4",
+          "output": null,
+          "success": false,
+          "error": "usage: people_counter.py [-h] --video VIDEO [--model MODEL]\n                         [--model-type {yolo12}]\n                         [--line-start LINE_START LINE_START]\n                         [--line-end LINE_END LINE_END]\n                         [--confidence CONFIDENCE] [--output OUTPUT]\n                         [--output-height OUTPUT_HEIGHT] [--show] [--verbose]\n                         [--classes CLASSES [CLASSES ...]]\npeople_counter.py: error: argument --model-type: invalid choice: 'yolov10' (choose from yolo12)\n"
+        },
+        {
+          "input": "input/4.mp4",
+          "output": null,
+          "success": false,
+          "error": "usage: people_counter.py [-h] --video VIDEO [--model MODEL]\n                         [--model-type {yolo12}]\n                         [--line-start LINE_START LINE_START]\n                         [--line-end LINE_END LINE_END]\n                         [--confidence CONFIDENCE] [--output OUTPUT]\n                         [--output-height OUTPUT_HEIGHT] [--show] [--verbose]\n                         [--classes CLASSES [CLASSES ...]]\npeople_counter.py: error: argument --model-type: invalid choice: 'yolov10' (choose from yolo12)\n"
+        },
+        {
+          "input": "input/5.mp4",
+          "output": null,
+          "success": false,
+          "error": "usage: people_counter.py [-h] --video VIDEO [--model MODEL]\n                         [--model-type {yolo12}]\n                         [--line-start LINE_START LINE_START]\n                         [--line-end LINE_END LINE_END]\n                         [--confidence CONFIDENCE] [--output OUTPUT]\n                         [--output-height OUTPUT_HEIGHT] [--show] [--verbose]\n                         [--classes CLASSES [CLASSES ...]]\npeople_counter.py: error: argument --model-type: invalid choice: 'yolov10' (choose from yolo12)\n"
+        },
+        {
+          "input": "input/cisco_1.mp4",
+          "output": null,
+          "success": false,
+          "error": "usage: people_counter.py [-h] --video VIDEO [--model MODEL]\n                         [--model-type {yolo12}]\n                         [--line-start LINE_START LINE_START]\n                         [--line-end LINE_END LINE_END]\n                         [--confidence CONFIDENCE] [--output OUTPUT]\n                         [--output-height OUTPUT_HEIGHT] [--show] [--verbose]\n                         [--classes CLASSES [CLASSES ...]]\npeople_counter.py: error: argument --model-type: invalid choice: 'yolov10' (choose from yolo12)\n"
+        },
+        {
+          "input": "input/cisco_2.mp4",
+          "output": null,
+          "success": false,
+          "error": "usage: people_counter.py [-h] --video VIDEO [--model MODEL]\n                         [--model-type {yolo12}]\n                         [--line-start LINE_START LINE_START]\n                         [--line-end LINE_END LINE_END]\n                         [--confidence CONFIDENCE] [--output OUTPUT]\n                         [--output-height OUTPUT_HEIGHT] [--show] [--verbose]\n                         [--classes CLASSES [CLASSES ...]]\npeople_counter.py: error: argument --model-type: invalid choice: 'yolov10' (choose from yolo12)\n"
+        },
+        {
+          "input": "input/cisco_3.mp4",
+          "output": null,
+          "success": false,
+          "error": "usage: people_counter.py [-h] --video VIDEO [--model MODEL]\n                         [--model-type {yolo12}]\n                         [--line-start LINE_START LINE_START]\n                         [--line-end LINE_END LINE_END]\n                         [--confidence CONFIDENCE] [--output OUTPUT]\n                         [--output-height OUTPUT_HEIGHT] [--show] [--verbose]\n                         [--classes CLASSES [CLASSES ...]]\npeople_counter.py: error: argument --model-type: invalid choice: 'yolov10' (choose from yolo12)\n"
+        },
+        {
+          "input": "input/cisco_4.mp4",
+          "output": null,
+          "success": false,
+          "error": "usage: people_counter.py [-h] --video VIDEO [--model MODEL]\n                         [--model-type {yolo12}]\n                         [--line-start LINE_START LINE_START]\n                         [--line-end LINE_END LINE_END]\n                         [--confidence CONFIDENCE] [--output OUTPUT]\n                         [--output-height OUTPUT_HEIGHT] [--show] [--verbose]\n                         [--classes CLASSES [CLASSES ...]]\npeople_counter.py: error: argument --model-type: invalid choice: 'yolov10' (choose from yolo12)\n"
+        },
+        {
+          "input": "input/cisco_5.mp4",
+          "output": null,
+          "success": false,
+          "error": "usage: people_counter.py [-h] --video VIDEO [--model MODEL]\n                         [--model-type {yolo12}]\n                         [--line-start LINE_START LINE_START]\n                         [--line-end LINE_END LINE_END]\n                         [--confidence CONFIDENCE] [--output OUTPUT]\n                         [--output-height OUTPUT_HEIGHT] [--show] [--verbose]\n                         [--classes CLASSES [CLASSES ...]]\npeople_counter.py: error: argument --model-type: invalid choice: 'yolov10' (choose from yolo12)\n"
+        }
+      ]
+    },
+    "vortex": {
+      "success": 0,
+      "failed": 10,
+      "files": [
+        {
+          "input": "input/1.mp4",
+          "output": null,
+          "success": false,
+          "error": "usage: people_counter.py [-h] --video VIDEO [--model MODEL]\n                         [--model-type {yolo12}]\n                         [--line-start LINE_START LINE_START]\n                         [--line-end LINE_END LINE_END]\n                         [--confidence CONFIDENCE] [--output OUTPUT]\n                         [--output-height OUTPUT_HEIGHT] [--show] [--verbose]\n                         [--classes CLASSES [CLASSES ...]]\npeople_counter.py: error: argument --model-type: invalid choice: 'yolov10' (choose from yolo12)\n"
+        },
+        {
+          "input": "input/2.mp4",
+          "output": null,
+          "success": false,
+          "error": "usage: people_counter.py [-h] --video VIDEO [--model MODEL]\n                         [--model-type {yolo12}]\n                         [--line-start LINE_START LINE_START]\n                         [--line-end LINE_END LINE_END]\n                         [--confidence CONFIDENCE] [--output OUTPUT]\n                         [--output-height OUTPUT_HEIGHT] [--show] [--verbose]\n                         [--classes CLASSES [CLASSES ...]]\npeople_counter.py: error: argument --model-type: invalid choice: 'yolov10' (choose from yolo12)\n"
+        },
+        {
+          "input": "input/3.mp4",
+          "output": null,
+          "success": false,
+          "error": "usage: people_counter.py [-h] --video VIDEO [--model MODEL]\n                         [--model-type {yolo12}]\n                         [--line-start LINE_START LINE_START]\n                         [--line-end LINE_END LINE_END]\n                         [--confidence CONFIDENCE] [--output OUTPUT]\n                         [--output-height OUTPUT_HEIGHT] [--show] [--verbose]\n                         [--classes CLASSES [CLASSES ...]]\npeople_counter.py: error: argument --model-type: invalid choice: 'yolov10' (choose from yolo12)\n"
+        },
+        {
+          "input": "input/4.mp4",
+          "output": null,
+          "success": false,
+          "error": "usage: people_counter.py [-h] --video VIDEO [--model MODEL]\n                         [--model-type {yolo12}]\n                         [--line-start LINE_START LINE_START]\n                         [--line-end LINE_END LINE_END]\n                         [--confidence CONFIDENCE] [--output OUTPUT]\n                         [--output-height OUTPUT_HEIGHT] [--show] [--verbose]\n                         [--classes CLASSES [CLASSES ...]]\npeople_counter.py: error: argument --model-type: invalid choice: 'yolov10' (choose from yolo12)\n"
+        },
+        {
+          "input": "input/5.mp4",
+          "output": null,
+          "success": false,
+          "error": "usage: people_counter.py [-h] --video VIDEO [--model MODEL]\n                         [--model-type {yolo12}]\n                         [--line-start LINE_START LINE_START]\n                         [--line-end LINE_END LINE_END]\n                         [--confidence CONFIDENCE] [--output OUTPUT]\n                         [--output-height OUTPUT_HEIGHT] [--show] [--verbose]\n                         [--classes CLASSES [CLASSES ...]]\npeople_counter.py: error: argument --model-type: invalid choice: 'yolov10' (choose from yolo12)\n"
+        },
+        {
+          "input": "input/vortex_1.mp4",
+          "output": null,
+          "success": false,
+          "error": "usage: people_counter.py [-h] --video VIDEO [--model MODEL]\n                         [--model-type {yolo12}]\n                         [--line-start LINE_START LINE_START]\n                         [--line-end LINE_END LINE_END]\n                         [--confidence CONFIDENCE] [--output OUTPUT]\n                         [--output-height OUTPUT_HEIGHT] [--show] [--verbose]\n                         [--classes CLASSES [CLASSES ...]]\npeople_counter.py: error: argument --model-type: invalid choice: 'yolov10' (choose from yolo12)\n"
+        },
+        {
+          "input": "input/vortex_2.mp4",
+          "output": null,
+          "success": false,
+          "error": "usage: people_counter.py [-h] --video VIDEO [--model MODEL]\n                         [--model-type {yolo12}]\n                         [--line-start LINE_START LINE_START]\n                         [--line-end LINE_END LINE_END]\n                         [--confidence CONFIDENCE] [--output OUTPUT]\n                         [--output-height OUTPUT_HEIGHT] [--show] [--verbose]\n                         [--classes CLASSES [CLASSES ...]]\npeople_counter.py: error: argument --model-type: invalid choice: 'yolov10' (choose from yolo12)\n"
+        },
+        {
+          "input": "input/vortex_3.mp4",
+          "output": null,
+          "success": false,
+          "error": "usage: people_counter.py [-h] --video VIDEO [--model MODEL]\n                         [--model-type {yolo12}]\n                         [--line-start LINE_START LINE_START]\n                         [--line-end LINE_END LINE_END]\n                         [--confidence CONFIDENCE] [--output OUTPUT]\n                         [--output-height OUTPUT_HEIGHT] [--show] [--verbose]\n                         [--classes CLASSES [CLASSES ...]]\npeople_counter.py: error: argument --model-type: invalid choice: 'yolov10' (choose from yolo12)\n"
+        },
+        {
+          "input": "input/vortex_4.mp4",
+          "output": null,
+          "success": false,
+          "error": "usage: people_counter.py [-h] --video VIDEO [--model MODEL]\n                         [--model-type {yolo12}]\n                         [--line-start LINE_START LINE_START]\n                         [--line-end LINE_END LINE_END]\n                         [--confidence CONFIDENCE] [--output OUTPUT]\n                         [--output-height OUTPUT_HEIGHT] [--show] [--verbose]\n                         [--classes CLASSES [CLASSES ...]]\npeople_counter.py: error: argument --model-type: invalid choice: 'yolov10' (choose from yolo12)\n"
+        },
+        {
+          "input": "input/vortex_5.mp4",
+          "output": null,
+          "success": false,
+          "error": "usage: people_counter.py [-h] --video VIDEO [--model MODEL]\n                         [--model-type {yolo12}]\n                         [--line-start LINE_START LINE_START]\n                         [--line-end LINE_END LINE_END]\n                         [--confidence CONFIDENCE] [--output OUTPUT]\n                         [--output-height OUTPUT_HEIGHT] [--show] [--verbose]\n                         [--classes CLASSES [CLASSES ...]]\npeople_counter.py: error: argument --model-type: invalid choice: 'yolov10' (choose from yolo12)\n"
+        }
+      ]
+    }
+  }
+}

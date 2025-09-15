@@ -160,7 +160,7 @@ class BatchTailgatingDetector:
                 python_cmd, "people_counter.py",
                 "--video", str(video_path),
                 "--model", model_path,
-                "--model-type", "yolo10",
+                "--model-type", "yolo12",
                 "--line-start", str(line_config["x1"]), str(line_config["y1"]),
                 "--line-end", str(line_config["x2"]), str(line_config["y2"]),
                 "--confidence", str(confidence),  # Much lower confidence for CCTV
@@ -174,6 +174,19 @@ class BatchTailgatingDetector:
             
             # Run the command
             result = subprocess.run(cmd, capture_output=True, text=True, cwd=os.getcwd())
+            
+            # Show all output from subprocess for debugging
+            if result.stdout:
+                print(f"   📤 Subprocess stdout:")
+                for line in result.stdout.split('\n'):
+                    if line.strip():
+                        print(f"      {line}")
+            
+            if result.stderr:
+                print(f"   📤 Subprocess stderr:")
+                for line in result.stderr.split('\n'):
+                    if line.strip():
+                        print(f"      {line}")
             
             # Show GPU detection output from subprocess
             if "Using device:" in result.stdout:

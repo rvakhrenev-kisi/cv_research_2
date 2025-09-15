@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Batch tailgating detection script for Cisco and Vortex videos.
-Runs YOLOv10 on all videos with saved line configurations.
+Uses configuration file for parameter tuning.
+Runs YOLOv11 on all videos with saved line configurations.
 """
 
 import os
@@ -12,20 +13,35 @@ import datetime
 from pathlib import Path
 import argparse
 from tqdm import tqdm
+from config_loader import ConfigLoader
 
 class BatchTailgatingDetector:
-    def __init__(self, config_dir="configs", input_dir="input", output_dir="outputs"):
-        self.config_dir = Path(config_dir)
-        self.input_dir = Path(input_dir)
-        self.output_dir = Path(output_dir)
+    def __init__(self, config_file="config.yaml"):
+        # Load configuration
+        self.config_loader = ConfigLoader(config_file)
+        self.config = self.config_loader.config
+        
+        # Get configuration sections
+        self.model_config = self.config_loader.get_model_config()
+        self.detection_config = self.config_loader.get_detection_config()
+        self.tracking_config = self.config_loader.get_tracking_config()
+        self.video_config = self.config_loader.get_video_config()
+        self.output_config = self.config_loader.get_output_config()
+        self.cctv_config = self.config_loader.get_cctv_config()
+        
+        # Set up directories
+        self.output_dir = Path(self.output_config.get("base_dir", "outputs"))
         self.datasets = ["cisco", "vortex"]
         
         # Create output directory
         self.output_dir.mkdir(exist_ok=True)
         
-        # Create timestamped run directory
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.run_dir = self.output_dir / f"run_{timestamp}"
+        # Create timestamped run directory if enabled
+        if self.output_config.get("create_timestamped_dir", True):
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            self.run_dir = self.output_dir / f"run_{timestamp}"
+        else:
+            self.run_dir = self.output_dir / "latest"
         self.run_dir.mkdir(exist_ok=True)
         
         print(f"📁 Run directory: {self.run_dir}")
@@ -49,22 +65,28 @@ class BatchTailgatingDetector:
             self.gpu_name = "PyTorch not available"
             self.gpu_memory = 0
         
-        # Tuned parameters for CCTV ceiling cameras
+        # Build tuned parameters from config
         self.tuned_parameters = {
-            "model_type": "YOLOv10x",
-            "confidence_threshold": 0.1,
-            "input_size": 640,
-            "iou_threshold": 0.3,  # Lower IoU to prevent merging close people
-            "agnostic_nms": False,  # Keep class-specific NMS
-            "tracking_confidence": 0.5,  # Higher confidence for tracking
-            "track_buffer": 30,  # Buffer for tracking
-            "match_thresh": 0.8,  # Matching threshold for tracking
-            "frame_rate": 30,  # Expected frame rate
-            "optimization": "CCTV ceiling cameras",
+            "model_type": self.model_config.get("name", "yolo11n.pt"),
+            "model_type_param": self.model_config.get("type", "yolo12"),
+            "confidence_threshold": self.detection_config.get("confidence", 0.1),
+            "input_size": self.detection_config.get("imgsz", 640),
+            "iou_threshold": self.detection_config.get("iou", 0.3),
+            "agnostic_nms": self.detection_config.get("agnostic_nms", False),
+            "track_high_thresh": self.tracking_config.get("track_high_thresh", 0.6),
+            "track_low_thresh": self.tracking_config.get("track_low_thresh", 0.1),
+            "new_track_thresh": self.tracking_config.get("new_track_thresh", 0.7),
+            "track_buffer": self.tracking_config.get("track_buffer", 30),
+            "match_thresh": self.tracking_config.get("match_thresh", 0.8),
+            "frame_rate": self.tracking_config.get("frame_rate", 30),
+            "optimization": "CCTV ceiling cameras" if self.cctv_config.get("optimized", True) else "Standard",
             "gpu_available": self.gpu_available,
             "gpu_name": self.gpu_name,
             "gpu_memory_gb": round(self.gpu_memory, 1)
         }
+        
+        # Print configuration summary
+        self.config_loader.print_config_summary()
     
     def load_line_config(self, dataset):
         """Load line configuration for a dataset."""
@@ -135,7 +157,7 @@ class BatchTailgatingDetector:
         
         return up_count, down_count, total_count
 
-    def process_video(self, video_path, dataset, line_config, model_path, confidence=0.1):
+    def process_video(self, video_path, dataset, line_config, model_path):
         """Process a single video with CCTV-optimized parameters."""
         try:
             # Create output filename
@@ -156,18 +178,27 @@ class BatchTailgatingDetector:
                 # Fallback to sys.executable
                 python_cmd = sys.executable
                 
+            # Get parameters from configuration
+            confidence = self.detection_config.get("confidence", 0.1)
+            model_type = self.model_config.get("type", "yolo12")
+            output_height = self.video_config.get("output_height", 0)
+            verbose = self.video_config.get("verbose", True)
+            
             cmd = [
                 python_cmd, "people_counter.py",
                 "--video", str(video_path),
                 "--model", model_path,
-                "--model-type", "yolo12",
+                "--model-type", model_type,
                 "--line-start", str(line_config["x1"]), str(line_config["y1"]),
                 "--line-end", str(line_config["x2"]), str(line_config["y2"]),
-                "--confidence", str(confidence),  # Much lower confidence for CCTV
+                "--confidence", str(confidence),
                 "--output", str(output_path),
-                "--output-height", "0",  # 0 = original resolution for better quality
-                "--verbose"  # Enable verbose output to get counts
+                "--output-height", str(output_height)
             ]
+            
+            # Add verbose flag if enabled
+            if verbose:
+                cmd.append("--verbose")
             
             print(f"🎬 Processing: {video_name}")
             print(f"   Command: {' '.join(cmd)}")

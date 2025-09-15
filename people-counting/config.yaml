@@ -1,0 +1,61 @@
+# People Counting Configuration File
+# Edit these parameters to tune detection and tracking performance
+
+# Model Configuration
+model:
+  name: "yolo11n.pt"  # Options: yolo11n.pt, yolo11s.pt, yolo11m.pt, yolo11l.pt, yolo11x.pt
+  type: "yolo12"      # Model type for people_counter.py
+
+# Detection Parameters
+detection:
+  confidence: 0.1     # Confidence threshold (0.01-0.9)
+  iou: 0.3           # IoU threshold for NMS (0.1-0.9)
+  imgsz: 640         # Input image size (320, 416, 512, 640, 832, 1024, 1280, 1536)
+  agnostic_nms: false # Class-agnostic NMS (true/false)
+
+# Tracking Parameters (ByteTrack)
+tracking:
+  track_high_thresh: 0.6  # High confidence threshold for tracking (0.1-0.9)
+  track_low_thresh: 0.1   # Low confidence threshold for tracking (0.1-0.9)
+  new_track_thresh: 0.7   # New track initialization threshold (0.1-0.9)
+  track_buffer: 30        # Number of frames to keep lost tracks (10-100)
+  match_thresh: 0.8       # Matching threshold for tracking (0.1-0.9)
+  frame_rate: 30          # Expected frame rate (15-60)
+
+# Video Processing
+video:
+  output_height: 0    # Output height (0 = original, or specific height)
+  verbose: true       # Verbose output (true/false)
+
+# Line Configuration (for each dataset)
+lines:
+  cisco:
+    start: [521, 898]
+    end: [737, 622]
+    direction: "right_to_left"  # right side = inside, left side = outside
+  
+  vortex:
+    start: [521, 898]  # Update these coordinates as needed
+    end: [737, 622]    # Update these coordinates as needed
+    direction: "left_to_right"  # left side = outside, right side = inside
+
+# Performance Tuning
+performance:
+  gpu_enabled: true   # Use GPU if available (true/false)
+  batch_size: 1       # Batch size for processing (1-8)
+  num_workers: 4      # Number of worker threads (1-8)
+
+# Output Configuration
+output:
+  base_dir: "outputs"
+  create_timestamped_dir: true
+  save_individual_results: true
+  save_summary: true
+  save_plots: true
+
+# CCTV Optimization (specific to ceiling cameras)
+cctv:
+  optimized: true
+  low_light_boost: false  # Enhance for low light conditions
+  motion_blur_compensation: false  # Compensate for motion blur
+  ceiling_angle_adjustment: true   # Adjust for ceiling camera perspective

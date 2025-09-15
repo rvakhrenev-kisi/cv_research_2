@@ -194,11 +194,10 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
         return None, 0, 0, 0
     
     # Load the video
-    try:
-        cap = cv2.VideoCapture(video_path)
-        if not cap.isOpened():
-            print(f"Error: Could not open video '{video_path}'")
-            return None, 0, 0, 0
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        print(f"Error: Could not open video '{video_path}'")
+        return None, 0, 0, 0
     
     # Get video properties
     orig_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -500,13 +499,6 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
     
     # Return results
     return output_path, frame_count, up_count, down_count
-    
-    except Exception as e:
-        print(f"❌ Error in process_video: {e}")
-        print(f"   Error type: {type(e).__name__}")
-        import traceback
-        print(f"   Traceback: {traceback.format_exc()}")
-        return None, 0, 0, 0
 
 def main():
     # Set up local ffmpeg and ffprobe binaries

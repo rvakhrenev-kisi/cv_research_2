@@ -158,12 +158,20 @@ class BatchTailgatingDetector:
         print(f"   Output: {self.run_dir}")
         print()
         
-        # Check if model exists
-        model_path = f"models/yolov8{model_size}.pt"
+        # Check if model exists (try YOLOv10 first, fallback to YOLOv8)
+        model_path = f"models/yolov10{model_size}.pt"
         if not os.path.exists(model_path):
-            print(f"❌ Model not found: {model_path}")
-            print("   Please download YOLOv8 models first")
-            return
+            model_path = f"models/yolov8{model_size}.pt"
+            if not os.path.exists(model_path):
+                print(f"❌ Model not found: models/yolov10{model_size}.pt or models/yolov8{model_size}.pt")
+                print("   Please download YOLOv10 or YOLOv8 models first")
+                return
+            else:
+                print(f"⚠️  Using YOLOv8{model_size} (YOLOv10{model_size} not found)")
+                self.tuned_parameters["model_type"] = f"YOLOv8{model_size}"
+        else:
+            print(f"✅ Using YOLOv10{model_size} model")
+            self.tuned_parameters["model_type"] = f"YOLOv10{model_size}"
         
         results = {
             "cisco": {"success": 0, "failed": 0, "files": [], "total_people": 0},

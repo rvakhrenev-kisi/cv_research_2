@@ -274,6 +274,8 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
         device = 'cpu'
         print(f"   Falling back to CPU")
     
+    print(f"✅ GPU detection completed, device: {device}")
+    
     # Initialize YOLO model with GPU support
     print(f"model_path = {model_path}")
     try:
@@ -292,6 +294,8 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
         device = 'cpu'
         model = YOLO(model_path, task='detect', verbose=verbose)
         print(f"✅ Model initialized on CPU (fallback)")
+    
+    print(f"✅ Model initialization completed")
     
     # Initialize tracker with default parameters
     # Note: ByteTrack parameters may vary by supervision version
@@ -325,14 +329,21 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
             # Run YOLO inference on the frame with CCTV optimizations
             # Ensure confidence is a Python native float, not float32
             # Use lower confidence and add imgsz parameter for better CCTV detection
-            results = model(frame, 
-                          conf=float(confidence), 
-                          classes=classes, 
-                          verbose=False,
-                          imgsz=640,  # Standard size for better detection
-                          iou=0.3,    # Lower IoU threshold to prevent merging close people
-                          agnostic_nms=False,  # Class-aware NMS
-                          device=device)  # Use GPU if available
+            try:
+                results = model(frame, 
+                              conf=float(confidence), 
+                              classes=classes, 
+                              verbose=False,
+                              imgsz=640,  # Standard size for better detection
+                              iou=0.3,    # Lower IoU threshold to prevent merging close people
+                              agnostic_nms=False,  # Class-aware NMS
+                              device=device)  # Use GPU if available
+            except Exception as e:
+                print(f"❌ Error in YOLO inference: {e}")
+                print(f"   Error type: {type(e).__name__}")
+                import traceback
+                print(f"   Traceback: {traceback.format_exc()}")
+                break
             
             # Get detections
             detections = sv.Detections.from_ultralytics(results[0])

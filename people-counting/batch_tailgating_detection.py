@@ -190,14 +190,21 @@ class BatchTailgatingDetector:
             
             # Show GPU detection output from subprocess
             if "Using device:" in result.stdout:
-                device_line = [line for line in result.stdout.split('\n') if 'Using device:' in line][0]
-                print(f"   {device_line}")
+                device_lines = [line for line in result.stdout.split('\n') if 'Using device:' in line]
+                if device_lines:
+                    print(f"   {device_lines[0]}")
             if "GPU:" in result.stdout:
-                gpu_line = [line for line in result.stdout.split('\n') if 'GPU:' in line and 'Memory:' in line][0]
-                print(f"   {gpu_line}")
+                gpu_lines = [line for line in result.stdout.split('\n') if 'GPU:' in line]
+                if gpu_lines:
+                    print(f"   {gpu_lines[0]}")
+            if "Memory:" in result.stdout:
+                memory_lines = [line for line in result.stdout.split('\n') if 'Memory:' in line]
+                if memory_lines:
+                    print(f"   {memory_lines[0]}")
             if "Model initialized" in result.stdout:
-                model_line = [line for line in result.stdout.split('\n') if 'Model initialized' in line][0]
-                print(f"   {model_line}")
+                model_lines = [line for line in result.stdout.split('\n') if 'Model initialized' in line]
+                if model_lines:
+                    print(f"   {model_lines[0]}")
             
             if result.returncode == 0:
                 # Extract counts from the output

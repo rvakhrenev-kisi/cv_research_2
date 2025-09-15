@@ -226,7 +226,9 @@ class BatchTailgatingDetectorV2:
         print(f"🚀 Starting batch tailgating detection")
         print(f"   Model: {model_name}")
         print(f"   Confidence: {confidence}")
-        print(f"   Output Quality: {'Original' if self.video_config.get('output_height', 0) == 0 else f'{self.video_config.get(\"output_height\")}px'}")
+        output_height = self.video_config.get('output_height', 0)
+        output_quality = 'Original' if output_height == 0 else f'{output_height}px'
+        print(f"   Output Quality: {output_quality}")
         print(f"   Optimization: {self.tuned_parameters['optimization']}")
         print(f"   GPU: {self.gpu_name} ({self.gpu_memory:.1f} GB)" if self.gpu_available else "   GPU: Not available")
         print(f"   Output: {self.run_dir}")

@@ -50,8 +50,20 @@ class YOLOv11Tuner:
         """Run test with YOLOv11 model"""
         print(f"\n🧪 Testing YOLOv11: {model_name} (confidence={confidence})")
         
+        # Use the virtual environment Python explicitly
+        import sys
+        import os
+        
+        # Try to use the virtual environment Python first
+        venv_python = os.path.join(os.getcwd(), ".venv", "Scripts", "python.exe")
+        if os.path.exists(venv_python):
+            python_cmd = venv_python
+        else:
+            # Fallback to sys.executable
+            python_cmd = sys.executable
+        
         cmd = [
-            "python", "people_counter.py",
+            python_cmd, "people_counter.py",
             "--video", "../cisco/1.mp4",
             "--model", f"models/{model_name}",
             "--model-type", "yolo12",  # people_counter.py uses yolo12 type

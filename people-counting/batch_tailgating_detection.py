@@ -287,8 +287,9 @@ class BatchTailgatingDetector:
             print(f"   👥 Total people detected: {dataset_total}")
             print()
         
-        # Save results summary
+        # Save results summary and parameters
         self.save_results_summary(results)
+        self.save_tuned_parameters()
         
         # Print final summary
         print("📊 IMPROVED BATCH PROCESSING COMPLETE")
@@ -308,6 +309,7 @@ class BatchTailgatingDetector:
         summary = {
             "timestamp": datetime.datetime.now().isoformat(),
             "run_directory": str(self.run_dir),
+            "tuned_parameters": self.tuned_parameters,
             "results": results
         }
         
@@ -316,6 +318,26 @@ class BatchTailgatingDetector:
             json.dump(summary, f, indent=2)
         
         print(f"📄 Summary saved: {summary_file}")
+    
+    def save_tuned_parameters(self):
+        """Save tuned parameters to a readable text file."""
+        params_file = self.run_dir / "tuned_parameters.txt"
+        with open(params_file, 'w') as f:
+            f.write("CCTV-Optimized Detection Parameters\n")
+            f.write("=" * 40 + "\n\n")
+            
+            for key, value in self.tuned_parameters.items():
+                f.write(f"{key}: {value}\n")
+            
+            f.write("\n" + "=" * 40 + "\n")
+            f.write("Notes:\n")
+            f.write("- Lower IoU threshold (0.3) prevents merging close people\n")
+            f.write("- Higher tracking confidence (0.5) improves line crossing detection\n")
+            f.write("- Optimized for ceiling-mounted CCTV cameras\n")
+            f.write("- YOLOv10x provides best accuracy for person detection\n")
+            f.write("- GPU acceleration enabled for faster processing\n")
+        
+        print(f"📋 Parameters saved: {params_file}")
 
 def main():
     parser = argparse.ArgumentParser(description="Batch tailgating detection for Cisco and Vortex videos")

@@ -252,13 +252,14 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
     print(f"model_path = {model_path}")
     model = YOLO(model_path, task='detect', verbose=verbose)
     
-    # Initialize tracker with improved parameters for CCTV footage
-    tracker = sv.ByteTrack(
-        track_thresh=0.5,  # Higher confidence for tracking
-        track_buffer=30,   # Buffer for tracking
-        match_thresh=0.8,  # Matching threshold
-        frame_rate=fps     # Use actual frame rate
-    )
+    # Initialize tracker with default parameters
+    # Note: ByteTrack parameters may vary by supervision version
+    try:
+        # Try with frame_rate parameter first
+        tracker = sv.ByteTrack(frame_rate=fps)
+    except TypeError:
+        # Fallback to default initialization if parameters not supported
+        tracker = sv.ByteTrack()
     
     # Get total frame count for progress bar
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))

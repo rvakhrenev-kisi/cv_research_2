@@ -86,7 +86,12 @@ class ConfigLoader:
         }
     
     def get_model_config(self) -> Dict[str, Any]:
-        """Get model configuration"""
+        """Get model configuration
+        
+        Note: The 'type' parameter is a legacy parameter from the original
+        people_counter.py script and is not actually used in detection logic.
+        It's kept for compatibility but doesn't affect YOLO model functionality.
+        """
         return self.config.get("model", {})
     
     def get_detection_config(self) -> Dict[str, Any]:

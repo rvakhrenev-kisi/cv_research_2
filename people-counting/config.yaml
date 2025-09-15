@@ -4,7 +4,7 @@
 # Model Configuration
 model:
   name: "yolo11n.pt"  # Options: yolo11n.pt, yolo11s.pt, yolo11m.pt, yolo11l.pt, yolo11x.pt
-  type: "yolo12"      # Model type for people_counter.py
+  type: "yolo12"      # Legacy parameter (not used in detection logic, kept for compatibility)
 
 # Detection Parameters
 detection:

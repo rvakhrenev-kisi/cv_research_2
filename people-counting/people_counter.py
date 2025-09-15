@@ -252,9 +252,14 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
     import torch
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f"🖥️  Using device: {device}")
-    if device == 'cuda':
-        print(f"   GPU: {torch.cuda.get_device_name(0)}")
-        print(f"   Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
+    if device == 'cuda' and torch.cuda.device_count() > 0:
+        try:
+            print(f"   GPU: {torch.cuda.get_device_name(0)}")
+            print(f"   Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
+        except Exception as e:
+            print(f"   GPU: Available but info unavailable ({e})")
+    else:
+        print(f"   GPU: Not available")
     
     # Initialize YOLO model with GPU support
     print(f"model_path = {model_path}")

@@ -33,10 +33,14 @@ class BatchTailgatingDetector:
         # Check for GPU availability
         try:
             import torch
-            self.gpu_available = torch.cuda.is_available()
+            self.gpu_available = torch.cuda.is_available() and torch.cuda.device_count() > 0
             if self.gpu_available:
-                self.gpu_name = torch.cuda.get_device_name(0)
-                self.gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1024**3
+                try:
+                    self.gpu_name = torch.cuda.get_device_name(0)
+                    self.gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1024**3
+                except Exception as e:
+                    self.gpu_name = f"GPU available but info unavailable ({e})"
+                    self.gpu_memory = 0
             else:
                 self.gpu_name = "None"
                 self.gpu_memory = 0

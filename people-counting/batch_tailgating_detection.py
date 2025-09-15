@@ -122,10 +122,20 @@ class BatchTailgatingDetector:
             output_path = self.run_dir / output_name
             
             # Build command with CCTV-optimized parameters
-            # Use sys.executable to ensure we use the same Python as the current process
+            # Use the virtual environment Python explicitly
             import sys
+            import os
+            
+            # Try to use the virtual environment Python first
+            venv_python = os.path.join(os.getcwd(), ".venv", "Scripts", "python.exe")
+            if os.path.exists(venv_python):
+                python_cmd = venv_python
+            else:
+                # Fallback to sys.executable
+                python_cmd = sys.executable
+                
             cmd = [
-                sys.executable, "people_counter.py",
+                python_cmd, "people_counter.py",
                 "--video", str(video_path),
                 "--model", model_path,
                 "--model-type", "yolo12",

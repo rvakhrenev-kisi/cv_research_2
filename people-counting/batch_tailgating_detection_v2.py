@@ -293,6 +293,9 @@ class BatchTailgatingDetectorV2:
         # Save results summary
         self.save_results_summary(all_results, total_processed, total_successful)
         
+        # Copy config file to output directory for reproducibility
+        self.copy_config_to_output()
+        
         print(f"\n✅ Batch processing completed!")
         print(f"   📊 Processed: {total_processed} videos")
         print(f"   ✅ Successful: {total_successful} videos")
@@ -342,6 +345,19 @@ class BatchTailgatingDetectorV2:
                     f.write(f"  {status} {video}: {data['total_count']} people\n")
         
         print(f"💾 Results saved to {summary_file} and {txt_file}")
+    
+    def copy_config_to_output(self):
+        """Copy the current config.yaml to output directory for reproducibility."""
+        import shutil
+        
+        config_source = Path("config.yaml")
+        config_dest = self.run_dir / "config_used.yaml"
+        
+        if config_source.exists():
+            shutil.copy2(config_source, config_dest)
+            print(f"   📋 Config copied to: {config_dest}")
+        else:
+            print(f"   ⚠️  Config file not found: {config_source}")
 
 def main():
     parser = argparse.ArgumentParser(description="Batch tailgating detection with configuration")

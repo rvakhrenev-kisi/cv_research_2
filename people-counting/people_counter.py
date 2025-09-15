@@ -194,10 +194,11 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
         return None, 0, 0, 0
     
     # Load the video
-    cap = cv2.VideoCapture(video_path)
-    if not cap.isOpened():
-        print(f"Error: Could not open video '{video_path}'")
-        return None, 0, 0, 0
+    try:
+        cap = cv2.VideoCapture(video_path)
+        if not cap.isOpened():
+            print(f"Error: Could not open video '{video_path}'")
+            return None, 0, 0, 0
     
     # Get video properties
     orig_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -249,24 +250,30 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
     line_counter = LineCounter(line_start, line_end)
     
     # Check for GPU availability
-    import torch
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    print(f"🖥️  Using device: {device}")
-    
-    if device == 'cuda':
-        try:
-            device_count = torch.cuda.device_count()
-            if device_count > 0:
-                print(f"   GPU: {torch.cuda.get_device_name(0)}")
-                print(f"   Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
-            else:
-                print(f"   GPU: CUDA available but no devices found")
+    try:
+        import torch
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        print(f"🖥️  Using device: {device}")
+        
+        if device == 'cuda':
+            try:
+                device_count = torch.cuda.device_count()
+                print(f"   Device count: {device_count}")
+                if device_count > 0:
+                    print(f"   GPU: {torch.cuda.get_device_name(0)}")
+                    print(f"   Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
+                else:
+                    print(f"   GPU: CUDA available but no devices found")
+                    device = 'cpu'  # Fallback to CPU
+            except Exception as e:
+                print(f"   GPU: Error accessing GPU info ({e})")
                 device = 'cpu'  # Fallback to CPU
-        except Exception as e:
-            print(f"   GPU: Error accessing GPU info ({e})")
-            device = 'cpu'  # Fallback to CPU
-    else:
-        print(f"   GPU: Not available")
+        else:
+            print(f"   GPU: Not available")
+    except Exception as e:
+        print(f"❌ Error in GPU detection: {e}")
+        device = 'cpu'
+        print(f"   Falling back to CPU")
     
     # Initialize YOLO model with GPU support
     print(f"model_path = {model_path}")
@@ -493,6 +500,13 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
     
     # Return results
     return output_path, frame_count, up_count, down_count
+    
+    except Exception as e:
+        print(f"❌ Error in process_video: {e}")
+        print(f"   Error type: {type(e).__name__}")
+        import traceback
+        print(f"   Traceback: {traceback.format_exc()}")
+        return None, 0, 0, 0
 
 def main():
     # Set up local ffmpeg and ffprobe binaries

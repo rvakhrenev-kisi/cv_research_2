@@ -249,28 +249,41 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
     line_counter = LineCounter(line_start, line_end)
     
     # Check for GPU availability
+    print(f"🔍 Starting GPU detection...")
     try:
         import torch
+        print(f"   PyTorch imported successfully")
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
         print(f"🖥️  Using device: {device}")
         
         if device == 'cuda':
+            print(f"   CUDA is available, checking devices...")
             try:
                 device_count = torch.cuda.device_count()
                 print(f"   Device count: {device_count}")
                 if device_count > 0:
-                    print(f"   GPU: {torch.cuda.get_device_name(0)}")
-                    print(f"   Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
+                    print(f"   Getting device name...")
+                    gpu_name = torch.cuda.get_device_name(0)
+                    print(f"   GPU: {gpu_name}")
+                    print(f"   Getting device properties...")
+                    gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1024**3
+                    print(f"   Memory: {gpu_memory:.1f} GB")
                 else:
                     print(f"   GPU: CUDA available but no devices found")
                     device = 'cpu'  # Fallback to CPU
             except Exception as e:
                 print(f"   GPU: Error accessing GPU info ({e})")
+                print(f"   Error type: {type(e).__name__}")
+                import traceback
+                print(f"   Traceback: {traceback.format_exc()}")
                 device = 'cpu'  # Fallback to CPU
         else:
             print(f"   GPU: Not available")
     except Exception as e:
         print(f"❌ Error in GPU detection: {e}")
+        print(f"   Error type: {type(e).__name__}")
+        import traceback
+        print(f"   Traceback: {traceback.format_exc()}")
         device = 'cpu'
         print(f"   Falling back to CPU")
     

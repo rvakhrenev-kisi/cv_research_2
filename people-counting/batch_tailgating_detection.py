@@ -160,7 +160,7 @@ class BatchTailgatingDetector:
                 python_cmd, "people_counter.py",
                 "--video", str(video_path),
                 "--model", model_path,
-                "--model-type", "yolo12",
+                "--model-type", "yolo10",
                 "--line-start", str(line_config["x1"]), str(line_config["y1"]),
                 "--line-end", str(line_config["x2"]), str(line_config["y2"]),
                 "--confidence", str(confidence),  # Much lower confidence for CCTV

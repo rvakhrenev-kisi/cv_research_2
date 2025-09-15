@@ -22,12 +22,23 @@ def download_yolov10x():
     print("   This may take a few minutes (61MB download)")
     
     try:
-        # Download from ultralytics releases
-        cmd = [
-            "wget", 
-            "https://github.com/ultralytics/assets/releases/download/v8.3.0/yolov10x.pt",
-            "-O", str(model_path)
-        ]
+        # Try different download methods for different platforms
+        import platform
+        system = platform.system().lower()
+        
+        if system == "windows":
+            # Try curl first (available in Git Bash)
+            cmd = [
+                "curl", "-L", "-o", str(model_path),
+                "https://github.com/ultralytics/assets/releases/download/v8.3.0/yolov10x.pt"
+            ]
+        else:
+            # Use wget on Linux/Mac
+            cmd = [
+                "wget", 
+                "https://github.com/ultralytics/assets/releases/download/v8.3.0/yolov10x.pt",
+                "-O", str(model_path)
+            ]
         
         result = subprocess.run(cmd, check=True, capture_output=True, text=True)
         
@@ -46,9 +57,11 @@ def download_yolov10x():
         print(f"   Error: {e.stderr}")
         return False
     except FileNotFoundError:
-        print("❌ wget not found. Please install wget or download manually:")
+        print("❌ curl/wget not found. Please download manually:")
         print(f"   URL: https://github.com/ultralytics/assets/releases/download/v8.3.0/yolov10x.pt")
         print(f"   Save to: {model_path}")
+        print("\n   Or try these commands:")
+        print(f"   curl -L -o {model_path} https://github.com/ultralytics/assets/releases/download/v8.3.0/yolov10x.pt")
         return False
 
 def main():

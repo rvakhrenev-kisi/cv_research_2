@@ -60,14 +60,40 @@ class ParameterSweep:
             self.gpu_name = "PyTorch not available"
             self.gpu_memory = 0
     
-    def generate_parameter_values(self, start: float, end: float, increment: float = 0.05) -> List[float]:
+    def generate_parameter_values(self, param_name: str, start: float, end: float, increment: float = 0.05) -> List[Any]:
         """Generate parameter values from start to end with given increment."""
         values = []
-        current = start
-        while current <= end + 1e-6:  # Add small epsilon for floating point precision
-            values.append(round(current, 3))
-            current += increment
-        return values
+        
+        # Handle different parameter types
+        if param_name in ["detection.agnostic_nms", "video.verbose", "performance.gpu_enabled", 
+                         "output.create_timestamped_dir", "output.save_individual_results", 
+                         "output.save_summary", "output.save_plots"]:
+            # Boolean parameters - test both True and False
+            return [True, False]
+        
+        elif param_name == "model.name":
+            # String parameter - predefined model options
+            model_options = ["yolo11n.pt", "yolo11s.pt", "yolo11m.pt", "yolo11l.pt", "yolo11x.pt"]
+            return model_options
+        
+        elif param_name in ["detection.imgsz", "tracking.track_buffer", "performance.batch_size", 
+                           "performance.num_workers", "video.output_height"]:
+            # Integer parameters
+            current = int(start)
+            end_int = int(end)
+            inc_int = max(1, int(increment))
+            while current <= end_int:
+                values.append(current)
+                current += inc_int
+            return values
+        
+        else:
+            # Float parameters (default)
+            current = start
+            while current <= end + 1e-6:  # Add small epsilon for floating point precision
+                values.append(round(current, 3))
+                current += increment
+            return values
     
     def get_parameter_path(self, config_dict: Dict[str, Any], param_name: str) -> List[str]:
         """Get the path to a parameter in the config dictionary."""
@@ -159,15 +185,43 @@ class ParameterSweep:
             output_height = self.video_config.get("output_height", 0)
             verbose = self.video_config.get("verbose", True)
             
-            # Override the specific parameter
+            # Override the specific parameter for people_counter.py
             if param_name == "detection.confidence":
                 confidence = param_value
             elif param_name == "detection.iou":
-                # This would need to be passed to people_counter.py if it supports it
+                # Note: people_counter.py doesn't currently support iou parameter
+                # This would need to be added to people_counter.py
+                pass
+            elif param_name == "detection.imgsz":
+                # Note: people_counter.py doesn't currently support imgsz parameter
+                # This would need to be added to people_counter.py
+                pass
+            elif param_name == "detection.agnostic_nms":
+                # Note: people_counter.py doesn't currently support agnostic_nms parameter
+                # This would need to be added to people_counter.py
                 pass
             elif param_name == "tracking.track_high_thresh":
-                # This would need to be passed to people_counter.py if it supports it
+                # Note: people_counter.py doesn't currently support tracking parameters
+                # This would need to be added to people_counter.py
                 pass
+            elif param_name == "tracking.track_low_thresh":
+                pass
+            elif param_name == "tracking.new_track_thresh":
+                pass
+            elif param_name == "tracking.track_buffer":
+                pass
+            elif param_name == "tracking.match_thresh":
+                pass
+            elif param_name == "tracking.frame_rate":
+                pass
+            elif param_name == "video.output_height":
+                output_height = int(param_value) if param_value != 0 else 0
+            elif param_name == "video.verbose":
+                verbose = bool(param_value)
+            elif param_name == "model.name":
+                # Update model path
+                model_path = f"models/{param_value}"
+            # Note: Other parameters (performance, output) don't affect people_counter.py directly
             
             cmd = [
                 python_cmd, "people_counter.py",
@@ -358,7 +412,7 @@ class ParameterSweep:
         print()
         
         # Generate parameter values
-        param_values = self.generate_parameter_values(start_value, end_value, increment)
+        param_values = self.generate_parameter_values(param_name, start_value, end_value, increment)
         print(f"   Testing {len(param_values)} values: {param_values}")
         print()
         
@@ -467,12 +521,37 @@ def main():
     
     # Validate parameter name
     valid_params = [
+        # Model parameters
+        "model.name",
+        
+        # Detection parameters
         "detection.confidence",
         "detection.iou", 
         "detection.imgsz",
+        "detection.agnostic_nms",
+        
+        # Tracking parameters
         "tracking.track_high_thresh",
         "tracking.track_low_thresh",
-        "tracking.new_track_thresh"
+        "tracking.new_track_thresh",
+        "tracking.track_buffer",
+        "tracking.match_thresh",
+        "tracking.frame_rate",
+        
+        # Video parameters
+        "video.output_height",
+        "video.verbose",
+        
+        # Performance parameters
+        "performance.gpu_enabled",
+        "performance.batch_size",
+        "performance.num_workers",
+        
+        # Output parameters
+        "output.create_timestamped_dir",
+        "output.save_individual_results",
+        "output.save_summary",
+        "output.save_plots"
     ]
     
     if args.parameter not in valid_params:
@@ -480,13 +559,24 @@ def main():
         print(f"   Valid parameters: {', '.join(valid_params)}")
         return
     
-    if args.start_value >= args.end_value:
-        print("❌ Start value must be less than end value")
-        return
-    
-    if args.increment <= 0:
-        print("❌ Increment must be positive")
-        return
+    # Validate parameter-specific constraints
+    if args.parameter in ["detection.agnostic_nms", "video.verbose", "performance.gpu_enabled", 
+                         "output.create_timestamped_dir", "output.save_individual_results", 
+                         "output.save_summary", "output.save_plots"]:
+        # Boolean parameters - ignore start/end values
+        print(f"   Note: {args.parameter} is a boolean parameter, will test both True and False")
+    elif args.parameter == "model.name":
+        # String parameter - ignore start/end values
+        print(f"   Note: {args.parameter} is a string parameter, will test all model options")
+    else:
+        # Numeric parameters
+        if args.start_value >= args.end_value:
+            print("❌ Start value must be less than end value")
+            return
+        
+        if args.increment <= 0:
+            print("❌ Increment must be positive")
+            return
     
     # Run sweep
     sweep = ParameterSweep(args.config)

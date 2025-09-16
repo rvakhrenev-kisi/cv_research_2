@@ -179,6 +179,21 @@ class BatchTailgatingDetectorV2:
                 "--output", str(output_path),
                 "--output-height", str(output_height)
             ]
+
+            # Add detection params from config
+            iou = self.detection_config.get("iou", 0.3)
+            imgsz = self.detection_config.get("imgsz", 640)
+            agnostic_nms = self.detection_config.get("agnostic_nms", False)
+            cmd.extend(["--iou", str(iou)])
+            cmd.extend(["--imgsz", str(imgsz)])
+            if agnostic_nms:
+                cmd.append("--agnostic-nms")
+
+            # Add tracking params from config
+            cmd.extend(["--track-high-thresh", str(self.tracking_config.get("track_high_thresh", 0.6))])
+            cmd.extend(["--track-low-thresh", str(self.tracking_config.get("track_low_thresh", 0.1))])
+            cmd.extend(["--new-track-thresh", str(self.tracking_config.get("new_track_thresh", 0.7))])
+            cmd.extend(["--match-thresh", str(self.tracking_config.get("match_thresh", 0.8))])
             
             # Add verbose flag if enabled
             if verbose:

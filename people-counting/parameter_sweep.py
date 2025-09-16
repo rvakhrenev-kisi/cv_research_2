@@ -189,30 +189,31 @@ class ParameterSweep:
             if param_name == "detection.confidence":
                 confidence = param_value
             elif param_name == "detection.iou":
-                # Note: people_counter.py doesn't currently support iou parameter
-                # This would need to be added to people_counter.py
+                # This will be passed as --iou parameter
                 pass
             elif param_name == "detection.imgsz":
-                # Note: people_counter.py doesn't currently support imgsz parameter
-                # This would need to be added to people_counter.py
+                # This will be passed as --imgsz parameter
                 pass
             elif param_name == "detection.agnostic_nms":
-                # Note: people_counter.py doesn't currently support agnostic_nms parameter
-                # This would need to be added to people_counter.py
+                # This will be passed as --agnostic-nms flag
                 pass
             elif param_name == "tracking.track_high_thresh":
-                # Note: people_counter.py doesn't currently support tracking parameters
-                # This would need to be added to people_counter.py
+                # This will be passed as --track-high-thresh parameter
                 pass
             elif param_name == "tracking.track_low_thresh":
+                # This will be passed as --track-low-thresh parameter
                 pass
             elif param_name == "tracking.new_track_thresh":
-                pass
-            elif param_name == "tracking.track_buffer":
+                # This will be passed as --new-track-thresh parameter
                 pass
             elif param_name == "tracking.match_thresh":
+                # This will be passed as --match-thresh parameter
+                pass
+            elif param_name == "tracking.track_buffer":
+                # Note: people_counter.py doesn't currently support track_buffer parameter
                 pass
             elif param_name == "tracking.frame_rate":
+                # Note: people_counter.py doesn't currently support frame_rate parameter
                 pass
             elif param_name == "video.output_height":
                 output_height = int(param_value) if param_value != 0 else 0
@@ -234,6 +235,37 @@ class ParameterSweep:
                 "--output", str(output_path),
                 "--output-height", str(output_height)
             ]
+            
+            # Add detection parameters
+            if param_name == "detection.iou":
+                cmd.extend(["--iou", str(param_value)])
+            elif param_name == "detection.imgsz":
+                cmd.extend(["--imgsz", str(int(param_value))])
+            elif param_name == "detection.agnostic_nms":
+                if param_value:
+                    cmd.append("--agnostic-nms")
+            else:
+                # Add default detection parameters
+                cmd.extend(["--iou", str(self.detection_config.get("iou", 0.3))])
+                cmd.extend(["--imgsz", str(self.detection_config.get("imgsz", 640))])
+                if self.detection_config.get("agnostic_nms", False):
+                    cmd.append("--agnostic-nms")
+            
+            # Add tracking parameters
+            if param_name == "tracking.track_high_thresh":
+                cmd.extend(["--track-high-thresh", str(param_value)])
+            elif param_name == "tracking.track_low_thresh":
+                cmd.extend(["--track-low-thresh", str(param_value)])
+            elif param_name == "tracking.new_track_thresh":
+                cmd.extend(["--new-track-thresh", str(param_value)])
+            elif param_name == "tracking.match_thresh":
+                cmd.extend(["--match-thresh", str(param_value)])
+            else:
+                # Add default tracking parameters
+                cmd.extend(["--track-high-thresh", str(self.tracking_config.get("track_high_thresh", 0.6))])
+                cmd.extend(["--track-low-thresh", str(self.tracking_config.get("track_low_thresh", 0.1))])
+                cmd.extend(["--new-track-thresh", str(self.tracking_config.get("new_track_thresh", 0.7))])
+                cmd.extend(["--match-thresh", str(self.tracking_config.get("match_thresh", 0.8))])
             
             # Add verbose flag if enabled
             if verbose:
@@ -359,7 +391,12 @@ class ParameterSweep:
                     frame_resized = cv2.resize(frame, (grid_width, grid_height))
                     
                     # Add parameter value overlay
-                    param_text = f"{param_name}={param_values[i]:.3f}"
+                    val = param_values[i]
+                    if isinstance(val, float):
+                        val_str = f"{val:.3f}"
+                    else:
+                        val_str = str(val)
+                    param_text = f"{param_name}={val_str}"
                     frame_resized = self.add_text_overlay(frame_resized, param_text, (10, 30))
                     
                     frames.append(frame_resized)

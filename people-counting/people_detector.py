@@ -15,6 +15,9 @@ def parse_arguments():
     parser.add_argument("--model-type", type=str, choices=["yolo12"], default="yolo12", 
                         help="Type of YOLO model to use (yolo12)")
     parser.add_argument("--confidence", type=float, default=0.3, help="Detection confidence threshold")
+    parser.add_argument("--iou", type=float, default=0.3, help="IoU threshold for NMS")
+    parser.add_argument("--imgsz", type=int, default=640, help="Input image size for inference")
+    parser.add_argument("--agnostic-nms", action="store_true", help="Use class-agnostic NMS")
     parser.add_argument("--output", type=str, default="", help="Path to output video file")
     parser.add_argument("--output-height", type=int, default=480, 
                         help="Output video height in pixels (default: 480, 0 for original resolution)")
@@ -24,7 +27,8 @@ def parse_arguments():
     return parser.parse_args()
 
 def process_video(video_path, model_path, confidence=0.3, classes=[0], 
-                 output_path="people_detection_output.mp4", show=False, verbose=False, output_height=480):
+                 output_path="people_detection_output.mp4", show=False, verbose=False, output_height=480,
+                 iou=0.3, imgsz=640, agnostic_nms=False):
     """
     Process a video to detect people and draw bounding boxes with progress tracking.
     
@@ -111,9 +115,17 @@ def process_video(video_path, model_path, confidence=0.3, classes=[0],
         frame_count += 1
         progress_bar.update(1)
         
-        # Run YOLO inference on the frame
+        # Run YOLO inference on the frame (configurable params)
         # Ensure confidence is a Python native float, not float32
-        results = model(frame, conf=float(confidence), classes=classes, verbose=False)
+        results = model(
+            frame,
+            conf=float(confidence),
+            classes=classes,
+            verbose=False,
+            imgsz=imgsz,
+            iou=iou,
+            agnostic_nms=agnostic_nms,
+        )
         
         # Get detections
         detections = sv.Detections.from_ultralytics(results[0])
@@ -230,7 +242,10 @@ def main():
         output_path=output_path,
         show=args.show,
         verbose=args.verbose,
-        output_height=args.output_height
+        output_height=args.output_height,
+        iou=args.iou,
+        imgsz=args.imgsz,
+        agnostic_nms=args.agnostic_nms,
     )
     
     # Print results

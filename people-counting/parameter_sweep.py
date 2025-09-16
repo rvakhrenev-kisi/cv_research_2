@@ -31,6 +31,9 @@ class ParameterSweep:
         self.output_config = self.config_loader.get_output_config()
         self.cctv_config = self.config_loader.get_cctv_config()
         
+        # Detect supported CLI flags of people_counter.py
+        self.supports = self._detect_supported_flags()
+
         # Set up directories
         self.output_dir = Path(self.output_config.get("base_dir", "outputs"))
         self.sweep_base_dir = self.output_dir / "parameter_sweep"
@@ -59,6 +62,26 @@ class ParameterSweep:
             self.gpu_available = False
             self.gpu_name = "PyTorch not available"
             self.gpu_memory = 0
+
+    def _detect_supported_flags(self) -> Dict[str, bool]:
+        """Parse people_counter.py --help to detect supported flags for compatibility across machines."""
+        help_text = ""
+        try:
+            proc = subprocess.run([sys.executable, "people_counter.py", "--help"], capture_output=True, text=True)
+            help_text = (proc.stdout or "") + "\n" + (proc.stderr or "")
+        except Exception:
+            pass
+        def has(flag: str) -> bool:
+            return flag in help_text
+        return {
+            "iou": has("--iou"),
+            "imgsz": has("--imgsz"),
+            "agnostic": has("--agnostic-nms"),
+            "track_high": has("--track-high-thresh"),
+            "track_low": has("--track-low-thresh"),
+            "new_track": has("--new-track-thresh"),
+            "match": has("--match-thresh"),
+        }
     
     def generate_parameter_values(self, param_name: str, start: float, end: float, increment: float = 0.05) -> List[Any]:
         """Generate parameter values from start to end with given increment."""

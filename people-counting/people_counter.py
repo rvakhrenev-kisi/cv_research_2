@@ -155,6 +155,13 @@ def parse_arguments():
     parser.add_argument("--line-start", type=int, nargs=2, default=[0, 0], help="Starting point of counting line (x y)")
     parser.add_argument("--line-end", type=int, nargs=2, default=[0, 0], help="Ending point of counting line (x y)")
     parser.add_argument("--confidence", type=float, default=0.3, help="Detection confidence threshold")
+    parser.add_argument("--iou", type=float, default=0.3, help="IoU threshold for NMS")
+    parser.add_argument("--imgsz", type=int, default=640, help="Input image size for inference")
+    parser.add_argument("--agnostic-nms", action="store_true", help="Use class-agnostic NMS")
+    parser.add_argument("--track-high-thresh", type=float, default=0.6, help="High confidence threshold for tracking")
+    parser.add_argument("--track-low-thresh", type=float, default=0.1, help="Low confidence threshold for tracking")
+    parser.add_argument("--new-track-thresh", type=float, default=0.7, help="New track initialization threshold")
+    parser.add_argument("--match-thresh", type=float, default=0.8, help="Matching threshold for tracking")
     parser.add_argument("--output", type=str, default="", help="Path to output video file")
     parser.add_argument("--output-height", type=int, default=480, 
                         help="Output video height in pixels (default: 480, 0 for original resolution)")
@@ -164,7 +171,9 @@ def parse_arguments():
     return parser.parse_args()
 
 def process_video(video_path, line_start, line_end, model_path, confidence=0.3, classes=[0], 
-                 output_path="object_counting_output.mp4", show=False, verbose=False, output_height=480):
+                 output_path="object_counting_output.mp4", show=False, verbose=False, output_height=480,
+                 iou=0.3, imgsz=640, agnostic_nms=False, track_high_thresh=0.6, track_low_thresh=0.1, 
+                 new_track_thresh=0.7, match_thresh=0.8):
     """
     Process a video to count people crossing a line with progress tracking.
     
@@ -310,14 +319,27 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
     
     print(f"✅ Model initialization completed")
     
-    # Initialize tracker with default parameters
+    # Initialize tracker with configurable parameters
     # Note: ByteTrack parameters may vary by supervision version
     try:
-        # Try with frame_rate parameter first
-        tracker = sv.ByteTrack(frame_rate=fps)
+        # Try with custom parameters first
+        tracker = sv.ByteTrack(
+            track_high_thresh=track_high_thresh,
+            track_low_thresh=track_low_thresh,
+            new_track_thresh=new_track_thresh,
+            match_thresh=match_thresh,
+            frame_rate=fps
+        )
+        print(f"   Using ByteTrack with custom parameters")
     except TypeError:
-        # Fallback to default initialization if parameters not supported
-        tracker = sv.ByteTrack()
+        try:
+            # Try with frame_rate parameter only
+            tracker = sv.ByteTrack(frame_rate=fps)
+            print("   Using ByteTrack with frame_rate only")
+        except TypeError:
+            # Fallback to basic initialization
+            tracker = sv.ByteTrack()
+            print("   Using basic ByteTrack initialization")
     
     # Get total frame count for progress bar
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -339,17 +361,16 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
             progress_bar.update(1)
             consecutive_errors = 0  # Reset error counter on successful frame read
         
-            # Run YOLO inference on the frame with CCTV optimizations
+            # Run YOLO inference on the frame with configurable parameters
             # Ensure confidence is a Python native float, not float32
-            # Use lower confidence and add imgsz parameter for better CCTV detection
             try:
                 results = model(frame, 
                               conf=float(confidence), 
                               classes=classes, 
                               verbose=False,
-                              imgsz=640,  # Standard size for better detection
-                              iou=0.3,    # Lower IoU threshold to prevent merging close people
-                              agnostic_nms=False,  # Class-aware NMS
+                              imgsz=imgsz,  # Configurable input size
+                              iou=iou,      # Configurable IoU threshold
+                              agnostic_nms=agnostic_nms,  # Configurable NMS type
                               device=device)  # Use GPU if available
             except Exception as e:
                 print(f"❌ Error in YOLO inference: {e}")
@@ -557,7 +578,14 @@ def main():
         output_path=output_path_arg,
         show=args.show,
         verbose=args.verbose,
-        output_height=args.output_height
+        output_height=args.output_height,
+        iou=args.iou,
+        imgsz=args.imgsz,
+        agnostic_nms=args.agnostic_nms,
+        track_high_thresh=args.track_high_thresh,
+        track_low_thresh=args.track_low_thresh,
+        new_track_thresh=args.new_track_thresh,
+        match_thresh=args.match_thresh
     )
     
     # Print results

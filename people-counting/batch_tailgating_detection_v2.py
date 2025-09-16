@@ -317,6 +317,8 @@ class BatchTailgatingDetectorV2:
         
         # Copy config file to output directory for reproducibility
         self.copy_config_to_output()
+        # Copy tracker YAML if using Ultralytics tracker
+        self.copy_tracker_yaml_to_output()
         
         print(f"\n✅ Batch processing completed!")
         print(f"   📊 Processed: {total_processed} videos")
@@ -380,6 +382,23 @@ class BatchTailgatingDetectorV2:
             print(f"   📋 Config copied to: {config_dest}")
         else:
             print(f"   ⚠️  Config file not found: {config_source}")
+
+    def copy_tracker_yaml_to_output(self):
+        """If Ultralytics tracker is enabled, copy its YAML to the run directory."""
+        import shutil
+        try:
+            if getattr(self, 'tracker_config', None) and self.tracker_config.get('use_ultralytics', False):
+                yaml_path = self.tracker_config.get('yaml')
+                if yaml_path:
+                    src = Path(yaml_path)
+                    if src.exists():
+                        dest = self.run_dir / src.name
+                        shutil.copy2(src, dest)
+                        print(f"   🧭 Tracker config copied to: {dest}")
+                    else:
+                        print(f"   ⚠️  Tracker YAML not found: {src}")
+        except Exception as e:
+            print(f"   ⚠️  Failed to copy tracker YAML: {e}")
 
 def main():
     parser = argparse.ArgumentParser(description="Batch tailgating detection with configuration")

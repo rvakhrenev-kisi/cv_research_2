@@ -26,6 +26,7 @@ class BatchTailgatingDetectorV2:
         self.detection_config = self.config_loader.get_detection_config()
         self.tracking_config = self.config_loader.get_tracking_config()
         self.video_config = self.config_loader.get_video_config()
+        self.tracker_config = self.config_loader.get_tracker_config()
         self.output_config = self.config_loader.get_output_config()
         self.cctv_config = self.config_loader.get_cctv_config()
         
@@ -168,6 +169,8 @@ class BatchTailgatingDetectorV2:
             output_height = self.video_config.get("output_height", 0)
             verbose = self.video_config.get("verbose", True)
             
+            use_ultra_tracker = self.tracker_config.get("use_ultralytics", False)
+
             cmd = [
                 python_cmd, "people_counter.py",
                 "--video", str(video_path),
@@ -189,11 +192,15 @@ class BatchTailgatingDetectorV2:
             if agnostic_nms:
                 cmd.append("--agnostic-nms")
 
-            # Add tracking params from config
-            cmd.extend(["--track-high-thresh", str(self.tracking_config.get("track_high_thresh", 0.6))])
-            cmd.extend(["--track-low-thresh", str(self.tracking_config.get("track_low_thresh", 0.1))])
-            cmd.extend(["--new-track-thresh", str(self.tracking_config.get("new_track_thresh", 0.7))])
-            cmd.extend(["--match-thresh", str(self.tracking_config.get("match_thresh", 0.8))])
+            # Add tracking params or Ultralytics tracker yaml
+            if use_ultra_tracker:
+                tracker_yaml = self.tracker_config.get("yaml", "trackers/botsort.yaml")
+                cmd.extend(["--tracker-yaml", tracker_yaml])
+            else:
+                cmd.extend(["--track-high-thresh", str(self.tracking_config.get("track_high_thresh", 0.6))])
+                cmd.extend(["--track-low-thresh", str(self.tracking_config.get("track_low_thresh", 0.1))])
+                cmd.extend(["--new-track-thresh", str(self.tracking_config.get("new_track_thresh", 0.7))])
+                cmd.extend(["--match-thresh", str(self.tracking_config.get("match_thresh", 0.8))])
             
             # Add verbose flag if enabled
             if verbose:

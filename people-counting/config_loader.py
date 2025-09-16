@@ -35,6 +35,12 @@ class ConfigLoader:
                 "name": "yolo11n.pt",
                 "type": "yolo12"
             },
+            "tracker": {
+                "use_ultralytics": False,
+                "backend": "botsort",
+                "yaml": "trackers/botsort.yaml",
+                "overrides": {}
+            },
             "detection": {
                 "confidence": 0.1,
                 "iou": 0.3,
@@ -100,6 +106,10 @@ class ConfigLoader:
         """Get video processing configuration"""
         return self.config.get("video", {})
     
+    def get_tracker_config(self) -> Dict[str, Any]:
+        """Get tracker configuration (Ultralytics trackers)."""
+        return self.config.get("tracker", {})
+    
     def get_line_config(self, dataset: str) -> Dict[str, Any]:
         """Get line configuration for specific dataset"""
         lines = self.config.get("lines", {})
@@ -125,10 +135,13 @@ class ConfigLoader:
         model = self.get_model_config()
         detection = self.get_detection_config()
         tracking = self.get_tracking_config()
+        tracker = self.get_tracker_config()
         
         print(f"🤖 Model: {model.get('name', 'N/A')} ({model.get('type', 'N/A')})")
         print(f"🎯 Detection: conf={detection.get('confidence', 'N/A')}, iou={detection.get('iou', 'N/A')}, imgsz={detection.get('imgsz', 'N/A')}")
         print(f"🔄 Tracking: high={tracking.get('track_high_thresh', 'N/A')}, low={tracking.get('track_low_thresh', 'N/A')}")
+        if tracker.get('use_ultralytics', False):
+            print(f"🧭 Tracker: {tracker.get('backend', 'botsort')} via {tracker.get('yaml', '')}")
         
         cctv = self.get_cctv_config()
         if cctv.get('optimized', False):

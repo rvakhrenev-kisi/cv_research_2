@@ -6,6 +6,13 @@ model:
   name: "yolo11x.pt"  # Options: yolo11n.pt, yolo11s.pt, yolo11m.pt, yolo11l.pt, yolo11x.pt
   type: "yolo12"      # Legacy parameter (not used in detection logic, kept for compatibility)
 
+# Tracker Configuration (Ultralytics trackers)
+tracker:
+  use_ultralytics: true    # Set true to use Ultralytics tracker mode
+  backend: botsort          # botsort|bytetrack|ocsort
+  yaml: trackers/botsort.yaml
+  overrides: {}             # key: value overrides merged into tracker YAML at runtime
+
 # Detection Parameters
 detection:
   confidence: 0.1     # Confidence threshold (0.01-0.9)

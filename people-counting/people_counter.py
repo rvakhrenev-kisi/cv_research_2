@@ -570,25 +570,68 @@ def main():
     
     # If Ultralytics tracker YAML provided, run tracking-only flow (IDs) and exit
     if getattr(args, "tracker_yaml", ""):
+        # Run Ultralytics tracker but preserve our output format and draw the line and filter to person only
         print(f"🔄 Using Ultralytics tracker: {args.tracker_yaml}")
         model = YOLO(args.model)
-        out_dir = os.path.join("outputs", "trackers")
-        os.makedirs(out_dir, exist_ok=True)
-        in_name = os.path.splitext(os.path.basename(args.video))[0]
-        model.track(
+
+        # Output path handling
+        os.makedirs(os.path.dirname(output_path_arg) or ".", exist_ok=True)
+
+        # Video IO setup to mirror standard branch
+        cap = cv2.VideoCapture(args.video)
+        if not cap.isOpened():
+            print(f"Error: Could not open video '{args.video}'")
+            return
+        orig_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        orig_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+
+        out_h = args.output_height if args.output_height not in (None, -1) else 480
+        if out_h == 0:
+            out_h = orig_height
+        out_w = int(orig_width * (out_h / orig_height)) if out_h != orig_height else orig_width
+        scale_x = out_w / orig_width
+        scale_y = out_h / orig_height
+
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        writer = cv2.VideoWriter(output_path_arg, fourcc, fps, (out_w, out_h))
+
+        # Coordinates for line
+        lx1, ly1 = args.line_start
+        lx2, ly2 = args.line_end
+
+        # Stream tracking to avoid RAM accumulation and to let us draw overlays
+        stream = model.track(
             source=args.video,
             tracker=args.tracker_yaml,
             conf=args.confidence,
             iou=args.iou,
             imgsz=args.imgsz,
+            classes=args.classes,  # person-only (class 0)
             persist=True,
-            save=True,
-            project=out_dir,
-            name=in_name,
-            exist_ok=True,
+            stream=True,
             verbose=args.verbose,
         )
-        print(f"✅ Tracking output saved under: {out_dir}/{in_name}")
+
+        for res in stream:
+            frame = res.orig_img
+            # Render tracker annotations (IDs) onto frame
+            annotated = res.plot()  # includes boxes and IDs
+            # Resize if needed
+            if out_h != orig_height:
+                annotated = cv2.resize(annotated, (out_w, out_h))
+                # scale line
+                sx1, sy1 = int(lx1 * scale_x), int(ly1 * scale_y)
+                sx2, sy2 = int(lx2 * scale_x), int(ly2 * scale_y)
+            else:
+                sx1, sy1, sx2, sy2 = lx1, ly1, lx2, ly2
+            # Draw counting line for visual consistency
+            cv2.line(annotated, (sx1, sy1), (sx2, sy2), (0, 255, 255), 3)
+            writer.write(annotated)
+
+        writer.release()
+        cap.release()
+        print(f"✅ Tracking output saved to: {output_path_arg}")
         return
 
     # Process the video

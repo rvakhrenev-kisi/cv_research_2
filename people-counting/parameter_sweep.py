@@ -33,7 +33,12 @@ class ParameterSweep:
         
         # Set up directories
         self.output_dir = Path(self.output_config.get("base_dir", "outputs"))
-        self.sweep_dir = self.output_dir / "parameter_sweep"
+        self.sweep_base_dir = self.output_dir / "parameter_sweep"
+        self.sweep_base_dir.mkdir(exist_ok=True)
+        
+        # Create timestamped run directory
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.sweep_dir = self.sweep_base_dir / f"run_{timestamp}"
         self.sweep_dir.mkdir(exist_ok=True)
         
         # Check for GPU availability
@@ -349,6 +354,7 @@ class ParameterSweep:
         print(f"   Dataset: {dataset}")
         print(f"   File: {file_name}")
         print(f"   Range: {start_value} to {end_value} (increment: {increment})")
+        print(f"   Run directory: {self.sweep_dir}")
         print()
         
         # Generate parameter values
@@ -428,7 +434,24 @@ class ParameterSweep:
         with open(results_file, 'w') as f:
             json.dump(results, f, indent=2)
         
+        # Copy config file to run directory for reproducibility
+        self.copy_config_to_output()
+        
         print(f"💾 Results saved to: {results_file}")
+        print(f"📁 Run directory: {self.sweep_dir}")
+    
+    def copy_config_to_output(self):
+        """Copy the current config.yaml to run directory for reproducibility."""
+        import shutil
+        
+        config_source = Path("config.yaml")
+        config_dest = self.sweep_dir / "config_used.yaml"
+        
+        if config_source.exists():
+            shutil.copy2(config_source, config_dest)
+            print(f"   📋 Config copied to: {config_dest}")
+        else:
+            print(f"   ⚠️  Config file not found: {config_source}")
 
 def main():
     parser = argparse.ArgumentParser(description="Parameter sweep for people counting detection")

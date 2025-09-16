@@ -1,0 +1,32 @@
+tracker_type: botsort
+# Association thresholds
+track_high_thresh: 0.5
+new_track_thresh: 0.6
+track_low_thresh: 0.1
+match_thresh: 0.8
+
+# Motion / lifecycle
+max_age: 60
+min_hits: 3
+track_buffer: 30
+
+# ReID settings
+with_reid: true
+proximity_thresh: 0.5
+appearance_thresh: 0.25
+
+deep_sort:
+  # Optional: provide a custom ReID model if available
+  # model: osnet_x0_25
+  max_dist: 0.2
+  max_iou_distance: 0.7
+  max_age: 60
+  n_init: 3
+  nn_budget: 100
+
+# Kalman filter / motion model
+cmc_method: kalman
+
+# Misc (placeholders for advanced setups)
+fast_reid_config: ''
+fast_reid_weights: ''

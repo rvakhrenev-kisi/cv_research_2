@@ -168,6 +168,7 @@ def parse_arguments():
     parser.add_argument("--show", action="store_true", help="Display the video while processing")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
     parser.add_argument("--classes", type=int, nargs="+", default=[0], help="Classes to detect (default: 0 for person)")
+    parser.add_argument("--tracker-yaml", type=str, default="", help="Optional Ultralytics tracker YAML (e.g., trackers/botsort.yaml)")
     return parser.parse_args()
 
 def process_video(video_path, line_start, line_end, model_path, confidence=0.3, classes=[0], 
@@ -567,6 +568,29 @@ def main():
     # Set output path
     output_path_arg = args.output if args.output else os.path.join("output", output_filename)
     
+    # If Ultralytics tracker YAML provided, run tracking-only flow (IDs) and exit
+    if getattr(args, "tracker_yaml", ""):
+        print(f"🔄 Using Ultralytics tracker: {args.tracker_yaml}")
+        model = YOLO(args.model)
+        out_dir = os.path.join("outputs", "trackers")
+        os.makedirs(out_dir, exist_ok=True)
+        in_name = os.path.splitext(os.path.basename(args.video))[0]
+        model.track(
+            source=args.video,
+            tracker=args.tracker_yaml,
+            conf=args.confidence,
+            iou=args.iou,
+            imgsz=args.imgsz,
+            persist=True,
+            save=True,
+            project=out_dir,
+            name=in_name,
+            exist_ok=True,
+            verbose=args.verbose,
+        )
+        print(f"✅ Tracking output saved under: {out_dir}/{in_name}")
+        return
+
     # Process the video
     output_path, frame_count, up_count, down_count = process_video(
         video_path=args.video,

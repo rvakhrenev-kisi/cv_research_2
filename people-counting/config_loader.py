@@ -76,12 +76,6 @@ class ConfigLoader:
                 "save_individual_results": True,
                 "save_summary": True,
                 "save_plots": True
-            },
-            "cctv": {
-                "optimized": True,
-                "low_light_boost": False,
-                "motion_blur_compensation": False,
-                "ceiling_angle_adjustment": True
             }
         }
     

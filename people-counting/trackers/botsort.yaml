@@ -1,32 +1,21 @@
-tracker_type: botsort
-# Association thresholds
-track_high_thresh: 0.5
-new_track_thresh: 0.6
-track_low_thresh: 0.1
-match_thresh: 0.8
+# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 
-# Motion / lifecycle
-max_age: 60
-min_hits: 3
-track_buffer: 30
+# BoT-SORT tracker defaults for mode="track"
+# Docs: https://docs.ultralytics.com/modes/track/
 
-# ReID settings
-with_reid: true
-proximity_thresh: 0.5
-appearance_thresh: 0.25
+tracker_type: botsort # (str) Tracker backend: botsort|bytetrack; choose botsort to enable BoT-SORT features
+track_high_thresh: 0.25 # (float) First-stage match threshold; raise for cleaner tracks, lower to keep more
+track_low_thresh: 0.1 # (float) Second-stage threshold for low-score matches; balances recovery vs drift
+new_track_thresh: 0.25 # (float) Start a new track if no match ≥ this; higher reduces false tracks
+track_buffer: 30 # (int) Frames to keep lost tracks alive; higher handles occlusion, increases ID switches risk
+match_thresh: 0.8 # (float) Association similarity threshold (IoU/cost); tune with detector quality
+fuse_score: True # (bool) Fuse detection score with motion/IoU for matching; stabilizes weak detections
 
-deep_sort:
-  # Optional: provide a custom ReID model if available
-  # model: osnet_x0_25
-  max_dist: 0.2
-  max_iou_distance: 0.7
-  max_age: 60
-  n_init: 3
-  nn_budget: 100
+# BoT-SORT specifics
+gmc_method: sparseOptFlow # (str) Global motion compensation: sparseOptFlow|orb|none; helps moving camera scenes
 
-# Kalman filter / motion model
-cmc_method: kalman
-
-# Misc (placeholders for advanced setups)
-fast_reid_config: ''
-fast_reid_weights: ''
+# ReID model related thresh
+proximity_thresh: 0.5 # (float) Min IoU to consider tracks proximate for ReID; higher is stricter
+appearance_thresh: 0.8 # (float) Min appearance similarity for ReID; raise to avoid identity swaps
+with_reid: False # (bool) Enable ReID model use; needs extra model and compute
+model: auto # (str) ReID model name/path; "auto" uses detector features if available

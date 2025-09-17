@@ -97,14 +97,35 @@ class BatchTailgatingDetectorV2:
             print(f"❌ No line configuration found for {dataset}")
             return None
         
-        # Convert to the format expected by people_counter.py
-        return {
-            "x1": line_config["start"][0],
-            "y1": line_config["start"][1],
-            "x2": line_config["end"][0],
-            "y2": line_config["end"][1],
-            "direction": line_config.get("direction", "unknown")
-        }
+        # Handle different JSON formats
+        if "line" in line_config:
+            # Format: {"line": {"x1": 675, "y1": 532, "x2": 1252, "y2": 532}}
+            line_data = line_config["line"]
+            return {
+                "x1": line_data["x1"],
+                "y1": line_data["y1"],
+                "x2": line_data["x2"],
+                "y2": line_data["y2"],
+                "direction": line_data.get("direction", "unknown")
+            }
+        elif "start" in line_config and "end" in line_config:
+            # Format: {"start": [x1, y1], "end": [x2, y2]}
+            return {
+                "x1": line_config["start"][0],
+                "y1": line_config["start"][1],
+                "x2": line_config["end"][0],
+                "y2": line_config["end"][1],
+                "direction": line_config.get("direction", "unknown")
+            }
+        else:
+            # Direct format: {"x1": 675, "y1": 532, "x2": 1252, "y2": 532}
+            return {
+                "x1": line_config["x1"],
+                "y1": line_config["y1"],
+                "x2": line_config["x2"],
+                "y2": line_config["y2"],
+                "direction": line_config.get("direction", "unknown")
+            }
     
     def get_video_files(self, dataset):
         """Get video files for a dataset."""

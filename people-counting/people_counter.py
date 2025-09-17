@@ -66,7 +66,7 @@ class LineCounter:
             center_point: Current center point of the object (x, y)
             
         Returns:
-            True if the object crossed the line in this update, False otherwise
+            "up", "down", or False if no crossing occurred
         """
         if object_id in self.crossed_objects:
             return False
@@ -87,7 +87,11 @@ class LineCounter:
         prev_distance = self.get_distance_from_line(prev_pos)
         
         # Check if the object crossed the line (sign change in distance)
-        if current_distance * prev_distance <= 0 and abs(current_distance) <= self.counting_region:
+        # Also check if both points are within the counting region
+        if (current_distance * prev_distance <= 0 and 
+            abs(current_distance) <= self.counting_region and 
+            abs(prev_distance) <= self.counting_region):
+            
             self.crossed_objects.add(object_id)
             
             # Determine direction of crossing
@@ -175,7 +179,7 @@ def parse_arguments():
 def process_video(video_path, line_start, line_end, model_path, confidence=0.3, classes=[0], 
                  output_path="object_counting_output.mp4", show=False, verbose=False, output_height=480,
                  iou=0.3, imgsz=640, agnostic_nms=False, track_high_thresh=0.6, track_low_thresh=0.1, 
-                 new_track_thresh=0.7, match_thresh=0.8):
+                 new_track_thresh=0.7, match_thresh=0.8, dataset="unknown"):
     """
     Process a video to count people crossing a line with progress tracking.
     
@@ -401,7 +405,7 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
                     
                 # Calculate point of interest for crossing check based on dataset
                 x1, y1, x2, y2 = xyxy
-                if args.dataset.lower() == "courtyard":
+                if dataset.lower() == "courtyard":
                     # Use bottom-center of the box
                     center_x = (x1 + x2) / 2
                     center_y = y2
@@ -413,12 +417,20 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
                 # Update line counter
                 crossing = line_counter.update(tracker_id, (center_x, center_y))
                 
+                # Debug output for first few frames
+                if frame_count < 10 and verbose:
+                    print(f"Frame {frame_count}, ID {tracker_id}: center=({center_x:.1f}, {center_y:.1f}), crossing={crossing}")
+                
                 # Determine color based on crossing status
                 color = (0, 255, 0)  # Green for default
                 if crossing == "up":
                     color = (0, 0, 255)  # Red for up crossing
+                    if verbose:
+                        print(f"  -> UP crossing detected for ID {tracker_id}")
                 elif crossing == "down":
                     color = (255, 0, 0)  # Blue for down crossing
+                    if verbose:
+                        print(f"  -> DOWN crossing detected for ID {tracker_id}")
                 
                 # Store detection info for drawing
                 detection_info.append((xyxy, tracker_id, color))
@@ -448,9 +460,16 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
             region_points = np.array(region_points, dtype=np.int32)
             cv2.polylines(display_frame, [region_points], True, (255, 0, 255), 1)
             
-            # Draw counts on display frame
-            cv2.putText(display_frame, f"Up: {line_counter.up_count} Down: {line_counter.down_count}", 
-                        (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+            # Draw counts on display frame (top-right corner)
+            frame_height, frame_width = display_frame.shape[:2]
+            count_text = f"Crossing In: {line_counter.up_count} | Crossing Out: {line_counter.down_count}"
+            text_size = cv2.getTextSize(count_text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)[0]
+            text_x = frame_width - text_size[0] - 10
+            text_y = 30
+            
+            # Draw background rectangle for better visibility
+            cv2.rectangle(display_frame, (text_x - 5, text_y - 25), (text_x + text_size[0] + 5, text_y + 5), (0, 0, 0), -1)
+            cv2.putText(display_frame, count_text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
             
             # Create output frame with appropriate resolution
             if output_height != orig_height:
@@ -497,10 +516,19 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
                     cv2.putText(output_frame, f"ID: {tracker_id}", (scaled_x1, scaled_y1 - 10), 
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5 * scale_y, color, max(1, int(2 * scale_y)))
                 
-                # Draw counts with scaled font size and position
-                cv2.putText(output_frame, f"Up: {line_counter.up_count} Down: {line_counter.down_count}", 
-                            (10, int(30 * scale_y)), cv2.FONT_HERSHEY_SIMPLEX, 
-                            1 * scale_y, (0, 0, 255), max(1, int(2 * scale_y)))
+                # Draw counts with scaled font size and position (top-right corner)
+                count_text = f"Crossing In: {line_counter.up_count} | Crossing Out: {line_counter.down_count}"
+                font_scale = 0.8 * scale_y
+                thickness = max(1, int(2 * scale_y))
+                text_size = cv2.getTextSize(count_text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)[0]
+                text_x = output_width - text_size[0] - 10
+                text_y = int(30 * scale_y)
+                
+                # Draw background rectangle for better visibility
+                cv2.rectangle(output_frame, (text_x - 5, text_y - int(25 * scale_y)), 
+                             (text_x + text_size[0] + 5, text_y + 5), (0, 0, 0), -1)
+                cv2.putText(output_frame, count_text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 
+                           font_scale, (0, 255, 0), thickness)
             else:
                 # If no resizing is needed, use the display frame
                 output_frame = display_frame.copy()
@@ -607,6 +635,9 @@ def main():
         lx1, ly1 = args.line_start
         lx2, ly2 = args.line_end
 
+        # Initialize line counter for Ultralytics tracker
+        line_counter = LineCounter(args.line_start, args.line_end)
+
         # Stream tracking to avoid RAM accumulation and to let us draw overlays
         stream = model.track(
             source=args.video,
@@ -620,10 +651,44 @@ def main():
             verbose=args.verbose,
         )
 
+        frame_count = 0
         for res in stream:
             frame = res.orig_img
+            frame_count += 1
+            
+            # Get tracking results
+            if res.boxes is not None and len(res.boxes) > 0:
+                # Process each tracked object
+                for box in res.boxes:
+                    if box.id is not None:  # Only process tracked objects
+                        # Get bounding box coordinates
+                        x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
+                        
+                        # Calculate point of interest for crossing check based on dataset
+                        if args.dataset.lower() == "courtyard":
+                            # Use bottom-center of the box
+                            center_x = (x1 + x2) / 2
+                            center_y = y2
+                        else:
+                            # Use middle of the box (default for cisco/vortex)
+                            center_x = (x1 + x2) / 2
+                            center_y = (y1 + y2) / 2
+                        
+                        # Update line counter
+                        crossing = line_counter.update(int(box.id), (center_x, center_y))
+                        
+                        # Debug output for first few frames
+                        if frame_count < 10 and args.verbose:
+                            print(f"Frame {frame_count}, ID {int(box.id)}: center=({center_x:.1f}, {center_y:.1f}), crossing={crossing}")
+                        
+                        if crossing == "up" and args.verbose:
+                            print(f"  -> UP crossing detected for ID {int(box.id)}")
+                        elif crossing == "down" and args.verbose:
+                            print(f"  -> DOWN crossing detected for ID {int(box.id)}")
+            
             # Render tracker annotations (IDs) onto frame
             annotated = res.plot()  # includes boxes and IDs
+            
             # Resize if needed
             if out_h != orig_height:
                 annotated = cv2.resize(annotated, (out_w, out_h))
@@ -632,13 +697,31 @@ def main():
                 sx2, sy2 = int(lx2 * scale_x), int(ly2 * scale_y)
             else:
                 sx1, sy1, sx2, sy2 = lx1, ly1, lx2, ly2
+            
             # Draw counting line for visual consistency
             cv2.line(annotated, (sx1, sy1), (sx2, sy2), (0, 255, 255), 3)
+            
+            # Draw counts on frame (top-right corner)
+            frame_height, frame_width = annotated.shape[:2]
+            count_text = f"Crossing In: {line_counter.up_count} | Crossing Out: {line_counter.down_count}"
+            text_size = cv2.getTextSize(count_text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)[0]
+            text_x = frame_width - text_size[0] - 10
+            text_y = 30
+            
+            # Draw background rectangle for better visibility
+            cv2.rectangle(annotated, (text_x - 5, text_y - 25), (text_x + text_size[0] + 5, text_y + 5), (0, 0, 0), -1)
+            cv2.putText(annotated, count_text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+            
             writer.write(annotated)
 
         writer.release()
         cap.release()
+        
+        # Print summary
         print(f"✅ Tracking output saved to: {output_path_arg}")
+        print(f"Video processing summary:")
+        print(f"  Total frames processed: {frame_count}")
+        print(f"  People count - Up: {line_counter.up_count}, Down: {line_counter.down_count}, Total: {line_counter.up_count + line_counter.down_count}")
         return
 
     # Process the video
@@ -659,7 +742,8 @@ def main():
         track_high_thresh=args.track_high_thresh,
         track_low_thresh=args.track_low_thresh,
         new_track_thresh=args.new_track_thresh,
-        match_thresh=args.match_thresh
+        match_thresh=args.match_thresh,
+        dataset=args.dataset
     )
     
     # Print results

@@ -146,20 +146,20 @@ class BatchTailgatingDetectorV2:
         
         lines = output_text.split('\n')
         for line in lines:
-            if "People count - Up:" in line:
+            if "People count - Up:" in line and "Down:" in line and "Total:" in line:
                 try:
-                    up_count = int(line.split("Up:")[1].strip())
-                except:
-                    pass
-            elif "People count - Down:" in line:
-                try:
-                    down_count = int(line.split("Down:")[1].strip())
-                except:
-                    pass
-            elif "Total:" in line and "people" in line.lower():
-                try:
-                    total_count = int(line.split("Total:")[1].strip())
-                except:
+                    # Parse format: "People count - Up: X, Down: Y, Total: Z"
+                    parts = line.split("Up:")[1].strip()
+                    up_count = int(parts.split(",")[0].strip())
+                    
+                    down_part = parts.split("Down:")[1].strip()
+                    down_count = int(down_part.split(",")[0].strip())
+                    
+                    total_part = down_part.split("Total:")[1].strip()
+                    total_count = int(total_part.strip())
+                except Exception as e:
+                    print(f"   ⚠️  Error parsing counts from line: {line.strip()}")
+                    print(f"   ⚠️  Error: {e}")
                     pass
         
         return up_count, down_count, total_count
@@ -342,18 +342,50 @@ class BatchTailgatingDetectorV2:
         # Copy tracker YAML if using Ultralytics tracker
         self.copy_tracker_yaml_to_output()
         
+        # Calculate total crossing counts for console output
+        total_up_count = 0
+        total_down_count = 0
+        total_people_count = 0
+        
+        for dataset, results in all_results.items():
+            for video, data in results.items():
+                if data["success"]:
+                    total_up_count += data["up_count"]
+                    total_down_count += data["down_count"]
+                    total_people_count += data["total_count"]
+        
         print(f"\n✅ Batch processing completed!")
         print(f"   📊 Processed: {total_processed} videos")
         print(f"   ✅ Successful: {total_successful} videos")
+        print(f"   🚶 Crossing In: {total_up_count}")
+        print(f"   🚶 Crossing Out: {total_down_count}")
+        print(f"   🔄 Total Crossings: {total_up_count + total_down_count}")
         print(f"   📁 Results saved to: {self.run_dir}")
     
     def save_results_summary(self, all_results, total_processed, total_successful):
         """Save processing results summary."""
+        # Calculate total crossing counts
+        total_up_count = 0
+        total_down_count = 0
+        total_people_count = 0
+        
+        for dataset, results in all_results.items():
+            for video, data in results.items():
+                if data["success"]:
+                    total_up_count += data["up_count"]
+                    total_down_count += data["down_count"]
+                    total_people_count += data["total_count"]
+        
         summary = {
             "timestamp": datetime.datetime.now().isoformat(),
             "total_processed": total_processed,
             "total_successful": total_successful,
             "success_rate": total_successful / total_processed if total_processed > 0 else 0,
+            "total_crossings": {
+                "up_count": total_up_count,
+                "down_count": total_down_count,
+                "total_count": total_people_count
+            },
             "tuned_parameters": self.tuned_parameters,
             "results": all_results
         }
@@ -372,6 +404,12 @@ class BatchTailgatingDetectorV2:
             f.write(f"Total Processed: {total_processed}\n")
             f.write(f"Total Successful: {total_successful}\n")
             f.write(f"Success Rate: {summary['success_rate']:.2%}\n\n")
+            
+            f.write("CROSSING COUNTS:\n")
+            f.write("-" * 20 + "\n")
+            f.write(f"Crossing In: {total_up_count}\n")
+            f.write(f"Crossing Out: {total_down_count}\n")
+            f.write(f"Total Crossings: {total_up_count + total_down_count}\n\n")
             
             f.write("CONFIGURATION USED:\n")
             f.write("-" * 30 + "\n")

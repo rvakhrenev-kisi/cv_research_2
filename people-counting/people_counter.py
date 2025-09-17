@@ -68,8 +68,7 @@ class LineCounter:
         Returns:
             "up", "down", or False if no crossing occurred
         """
-        if object_id in self.crossed_objects:
-            return False
+        # Allow multiple crossings per person - removed the crossed_objects check
         
         # Add current position to track
         self.object_tracks[object_id].append(center_point)
@@ -97,7 +96,7 @@ class LineCounter:
               abs(prev_distance) <= self.counting_region * 2 and
               abs(current_distance - prev_distance) > self.counting_region))):
             
-            self.crossed_objects.add(object_id)
+            # Allow multiple crossings - don't add to crossed_objects
             
             # Determine direction of crossing
             if current_distance > prev_distance:

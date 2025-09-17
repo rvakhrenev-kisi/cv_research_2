@@ -12,7 +12,7 @@ import sys
 import platform
 
 class LineCounter:
-    def __init__(self, start_point, end_point, counting_region=15):
+    def __init__(self, start_point, end_point, counting_region=30):
         """
         Initialize a line counter for tracking objects crossing a line.
         
@@ -88,9 +88,14 @@ class LineCounter:
         
         # Check if the object crossed the line (sign change in distance)
         # At least one point should be within the counting region to avoid false positives
+        # But also check if the person is moving towards the line from far away
         if (current_distance * prev_distance <= 0 and 
             (abs(current_distance) <= self.counting_region or 
-             abs(prev_distance) <= self.counting_region)):
+             abs(prev_distance) <= self.counting_region or
+             # Also detect crossings when person is moving towards the line from far away
+             (abs(current_distance) <= self.counting_region * 2 and 
+              abs(prev_distance) <= self.counting_region * 2 and
+              abs(current_distance - prev_distance) > self.counting_region))):
             
             self.crossed_objects.add(object_id)
             

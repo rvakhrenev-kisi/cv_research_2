@@ -230,7 +230,7 @@ def create_line_marking_interface():
                 # Dataset selection
                 gr.Markdown("### 📁 Dataset Selection")
                 dataset_dropdown = gr.Dropdown(
-                    choices=["cisco", "vortex"],
+                    choices=["cisco", "vortex", "courtyard"],
                     value="cisco",
                     label="Dataset",
                     info="Choose which dataset configuration to use"

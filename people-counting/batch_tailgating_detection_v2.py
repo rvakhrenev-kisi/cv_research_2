@@ -32,7 +32,7 @@ class BatchTailgatingDetectorV2:
         
         # Set up directories
         self.output_dir = Path(self.output_config.get("base_dir", "outputs"))
-        self.datasets = ["cisco", "vortex"]
+        self.datasets = ["cisco", "vortex", "courtyard"]
         
         # Create output directory
         self.output_dir.mkdir(exist_ok=True)
@@ -273,11 +273,11 @@ class BatchTailgatingDetectorV2:
         for dataset in self.datasets:
             print(f"\n📁 Processing {dataset.upper()} dataset...")
             
-            # Load line configuration
+            # Load line configuration (fallback to a minimal default if missing)
             line_config = self.load_line_config(dataset)
             if not line_config:
-                print(f"   ⚠️  Skipping {dataset} - no line configuration")
-                continue
+                print(f"   ⚠️  No line configuration found for {dataset}. Proceeding without a line (visual only).")
+                line_config = {"x1": 0, "y1": 0, "x2": 10, "y2": 0, "direction": "unknown"}
             
             print(f"   📏 Line: ({line_config['x1']},{line_config['y1']}) -> ({line_config['x2']},{line_config['y2']})")
             print(f"   📏 Direction: {line_config['direction']}")

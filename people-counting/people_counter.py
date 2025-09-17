@@ -87,10 +87,10 @@ class LineCounter:
         prev_distance = self.get_distance_from_line(prev_pos)
         
         # Check if the object crossed the line (sign change in distance)
-        # Also check if both points are within the counting region
+        # At least one point should be within the counting region to avoid false positives
         if (current_distance * prev_distance <= 0 and 
-            abs(current_distance) <= self.counting_region and 
-            abs(prev_distance) <= self.counting_region):
+            (abs(current_distance) <= self.counting_region or 
+             abs(prev_distance) <= self.counting_region)):
             
             self.crossed_objects.add(object_id)
             
@@ -677,8 +677,13 @@ def main():
                         # Update line counter
                         crossing = line_counter.update(int(box.id), (center_x, center_y))
                         
-                        # Debug output for first few frames
-                        if frame_count < 10 and args.verbose:
+                        # Additional debug info for line crossing analysis
+                        if args.verbose and frame_count <= 20:  # Show detailed info for first 20 frames
+                            distance = line_counter.get_distance_from_line((center_x, center_y))
+                            print(f"    -> Distance from line: {distance:.1f}, Line y=532, Person y={center_y:.1f}")
+                        
+                        # Debug output for all frames when verbose
+                        if args.verbose:
                             print(f"Frame {frame_count}, ID {int(box.id)}: center=({center_x:.1f}, {center_y:.1f}), crossing={crossing}")
                         
                         if crossing == "up" and args.verbose:

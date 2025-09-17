@@ -1,0 +1,28 @@
+# Global (non-dataset) configuration
+
+model:
+  name: "yolo11n.pt"
+  type: "yolo12"
+
+tracker:
+  use_ultralytics: true
+  backend: botsort
+  yaml: configs/trackers/botsort.yaml
+  overrides: {}
+
+video:
+  output_height: 0
+  verbose: true
+
+performance:
+  gpu_enabled: true
+  batch_size: 4
+  num_workers: 4
+
+output:
+  base_dir: "outputs"
+  create_timestamped_dir: true
+  save_individual_results: true
+  save_summary: true
+  save_plots: true
+

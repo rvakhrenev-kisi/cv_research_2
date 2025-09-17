@@ -16,7 +16,7 @@ from tqdm import tqdm
 from config_loader import ConfigLoader
 
 class BatchTailgatingDetectorV2:
-    def __init__(self, config_file="config.yaml"):
+    def __init__(self, config_file="configs/global.yaml"):
         # Load configuration
         self.config_loader = ConfigLoader(config_file)
         self.config = self.config_loader.config
@@ -111,7 +111,8 @@ class BatchTailgatingDetectorV2:
                 "y1": line_data["y1"],
                 "x2": line_data["x2"],
                 "y2": line_data["y2"],
-                "direction": line_data.get("direction", "unknown")
+                "direction": line_data.get("direction", "unknown"),
+                "direction_point": line_config.get("direction_point")
             }
         elif "start" in line_config and "end" in line_config:
             # Format: {"start": [x1, y1], "end": [x2, y2]}
@@ -120,7 +121,8 @@ class BatchTailgatingDetectorV2:
                 "y1": line_config["start"][1],
                 "x2": line_config["end"][0],
                 "y2": line_config["end"][1],
-                "direction": line_config.get("direction", "unknown")
+                "direction": line_config.get("direction", "unknown"),
+                "direction_point": line_config.get("direction_point")
             }
         else:
             # Direct format: {"x1": 675, "y1": 532, "x2": 1252, "y2": 532}
@@ -129,7 +131,8 @@ class BatchTailgatingDetectorV2:
                 "y1": line_config["y1"],
                 "x2": line_config["x2"],
                 "y2": line_config["y2"],
-                "direction": line_config.get("direction", "unknown")
+                "direction": line_config.get("direction", "unknown"),
+                "direction_point": line_config.get("direction_point")
             }
     
     def get_video_files(self, dataset):
@@ -191,11 +194,14 @@ class BatchTailgatingDetectorV2:
                 python_cmd = sys.executable
             
             # Get parameters from configuration (allow per-dataset overrides)
+            # Detection params: dataset-specific only
             ds_detection = self.config_loader.get_dataset_detection_config(dataset)
             confidence = ds_detection.get("confidence", self.detection_config.get("confidence", 0.1))
             model_type = self.model_config.get("type", "yolo12")
-            output_height = self.video_config.get("output_height", 0)
-            verbose = self.video_config.get("verbose", True)
+            # Video params: prefer dataset-specific video.yaml; fallback to global video section
+            ds_video = self.config_loader.get_dataset_video_config(dataset)
+            output_height = ds_video.get("output_height", self.video_config.get("output_height", 0))
+            verbose = ds_video.get("verbose", self.video_config.get("verbose", True))
             
             use_ultra_tracker = self.tracker_config.get("use_ultralytics", False)
 
@@ -211,6 +217,10 @@ class BatchTailgatingDetectorV2:
                 "--output", str(output_path),
                 "--output-height", str(output_height)
             ]
+            
+            # Add direction point if available
+            if "direction_point" in line_config and line_config["direction_point"]:
+                cmd.extend(["--direction-point", str(line_config["direction_point"][0]), str(line_config["direction_point"][1])])
 
             # Add detection params from config
             iou = ds_detection.get("iou", self.detection_config.get("iou", 0.3))
@@ -310,7 +320,11 @@ class BatchTailgatingDetectorV2:
                 line_config = {"x1": 0, "y1": 0, "x2": 10, "y2": 0, "direction": "unknown"}
             
             print(f"   📏 Line: ({line_config['x1']},{line_config['y1']}) -> ({line_config['x2']},{line_config['y2']})")
-            print(f"   📏 Direction: {line_config['direction']}")
+            if line_config.get("direction_point"):
+                dp = line_config["direction_point"]
+                print(f"   🧭 Direction point (IN side): ({dp[0]},{dp[1]})")
+            else:
+                print(f"   🧭 Direction: {line_config.get('direction', 'unknown')}")
             
             # Get video files
             video_files = self.get_video_files(dataset)
@@ -437,7 +451,10 @@ class BatchTailgatingDetectorV2:
                 f.write(f"\n{dataset.upper()} DATASET:\n")
                 for video, data in results.items():
                     status = "✅" if data["success"] else "❌"
-                    f.write(f"  {status} {video}: {data['total_count']} people\n")
+                    f.write(
+                        f"  {status} {video}: Crossing In={data['up_count']}, "
+                        f"Crossing Out={data['down_count']}, Total={data['total_count']}\n"
+                    )
         
         print(f"💾 Results saved to {summary_file} and {txt_file}")
     
@@ -445,8 +462,8 @@ class BatchTailgatingDetectorV2:
         """Copy the current config.yaml to output directory for reproducibility."""
         import shutil
         
-        config_source = Path("config.yaml")
-        config_dest = self.run_dir / "config_used.yaml"
+        config_source = Path(self.config_loader.config_file)
+        config_dest = self.run_dir / "global_config_used.yaml"
         
         if config_source.exists():
             shutil.copy2(config_source, config_dest)
@@ -480,25 +497,13 @@ class BatchTailgatingDetectorV2:
             shutil.copy2(line_src, dest_dir / "line.json")
 
     def copy_tracker_yaml_to_output(self):
-        """If Ultralytics tracker is enabled, copy its YAML to the run directory."""
-        import shutil
-        try:
-            if getattr(self, 'tracker_config', None) and self.tracker_config.get('use_ultralytics', False):
-                yaml_path = self.tracker_config.get('yaml')
-                if yaml_path:
-                    src = Path(yaml_path)
-                    if src.exists():
-                        dest = self.run_dir / src.name
-                        shutil.copy2(src, dest)
-                        print(f"   🧭 Tracker config copied to: {dest}")
-                    else:
-                        print(f"   ⚠️  Tracker YAML not found: {src}")
-        except Exception as e:
-            print(f"   ⚠️  Failed to copy tracker YAML: {e}")
+        """Copy the per-dataset tracker YAMLs into each dataset output folder's configs_used."""
+        # Already handled in copy_dataset_configs_to_output per dataset; nothing to do here.
+        return
 
 def main():
     parser = argparse.ArgumentParser(description="Batch tailgating detection with configuration")
-    parser.add_argument("--config", default="config.yaml", help="Configuration file path")
+    parser.add_argument("--config", default="configs/global.yaml", help="Configuration file path")
     args = parser.parse_args()
     
     detector = BatchTailgatingDetectorV2(args.config)

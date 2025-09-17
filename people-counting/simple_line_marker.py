@@ -15,6 +15,7 @@ from pathlib import Path
 class SimpleLineMarker:
     def __init__(self):
         self.line_points = [None, None]  # [start_point, end_point]
+        self.direction_arrow = None  # Arrow indicating "in" direction
         self.current_frame = None
         self.video_path = None
         self.cap = None
@@ -22,8 +23,8 @@ class SimpleLineMarker:
         self.total_frames = 0
         self.fps = 30  # Default FPS
         self.current_dataset = "cisco"  # Default dataset
-        self.config_dir = Path("configs")
-        self.config_dir.mkdir(exist_ok=True)
+        self.config_dir = Path("configs/datasets")
+        self.config_dir.mkdir(parents=True, exist_ok=True)
     
     def load_video(self, video_file):
         """Load video and extract first frame for line marking."""
@@ -49,8 +50,9 @@ class SimpleLineMarker:
             
             self.current_frame = frame.copy()
             
-            # Reset line points
+            # Reset line points and direction
             self.line_points = [None, None]
+            self.direction_arrow = None
             
             # Convert BGR to RGB for display
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -95,11 +97,15 @@ class SimpleLineMarker:
         if self.line_points[0] is None:
             # First point
             self.line_points[0] = (x, y)
-            return self.draw_line_on_frame(), f"First point set at ({x}, {y}). Click for second point.", x, y, None, None
-        else:
+            return self.draw_line_on_frame(), f"First point set at ({x}, {y}). Click for second point.", x, y, None, None, None, None
+        elif self.line_points[1] is None:
             # Second point
             self.line_points[1] = (x, y)
-            return self.draw_line_on_frame(), f"Line marked: ({self.line_points[0][0]},{self.line_points[0][1]}) -> ({x},{y})", self.line_points[0][0], self.line_points[0][1], x, y
+            return self.draw_line_on_frame(), f"Line marked: ({self.line_points[0][0]},{self.line_points[0][1]}) -> ({x},{y}). Click to set direction arrow.", self.line_points[0][0], self.line_points[0][1], x, y, None, None
+        else:
+            # Direction arrow point
+            self.direction_arrow = (x, y)
+            return self.draw_line_on_frame(), f"Direction set: Arrow points from line to ({x},{y}). This indicates the 'IN' direction.", self.line_points[0][0], self.line_points[0][1], self.line_points[1][0], self.line_points[1][1], x, y
     
     def draw_line_on_frame(self):
         """Draw line on current frame and return RGB image."""
@@ -117,6 +123,20 @@ class SimpleLineMarker:
         if self.line_points[0] and self.line_points[1]:
             cv2.line(frame_with_line, self.line_points[0], self.line_points[1], (0, 255, 0), 3)
             cv2.circle(frame_with_line, self.line_points[1], 8, (0, 0, 255), -1)
+            
+            # Draw direction arrow if available
+            if self.direction_arrow:
+                # Calculate arrow position (middle of line)
+                mid_x = (self.line_points[0][0] + self.line_points[1][0]) // 2
+                mid_y = (self.line_points[0][1] + self.line_points[1][1]) // 2
+                
+                # Draw arrow from line midpoint to direction point
+                cv2.arrowedLine(frame_with_line, (mid_x, mid_y), self.direction_arrow, (255, 0, 0), 3, tipLength=0.3)
+                cv2.circle(frame_with_line, self.direction_arrow, 6, (255, 0, 0), -1)
+                
+                # Add "IN" label
+                cv2.putText(frame_with_line, "IN", (self.direction_arrow[0] + 10, self.direction_arrow[1] - 10), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
         
         # Convert BGR to RGB
         frame_rgb = cv2.cvtColor(frame_with_line, cv2.COLOR_BGR2RGB)
@@ -128,14 +148,21 @@ class SimpleLineMarker:
             return None, "No video loaded"
         
         self.line_points = [None, None]
+        self.direction_arrow = None
         frame_rgb = cv2.cvtColor(self.current_frame, cv2.COLOR_BGR2RGB)
-        return frame_rgb, "Line reset. Click on the image to draw a new line.", 0, 0, 100, 100
+        return frame_rgb, "Line reset. Click on the image to draw a new line.", 0, 0, 100, 100, 0, 0
     
     def get_line_coordinates(self):
         """Get current line coordinates."""
         if self.line_points[0] and self.line_points[1]:
             return self.line_points[0][0], self.line_points[0][1], self.line_points[1][0], self.line_points[1][1]
         return 0, 0, 100, 100
+    
+    def get_direction_coordinates(self):
+        """Get direction arrow coordinates."""
+        if self.direction_arrow:
+            return self.direction_arrow[0], self.direction_arrow[1]
+        return 0, 0
     
     def generate_command(self, model_type="yolov8", model_size="n", confidence=0.3):
         """Generate the people counter command with current line coordinates."""
@@ -160,9 +187,13 @@ class SimpleLineMarker:
         
         return command
     
-    def save_line_config(self, dataset, x1, y1, x2, y2):
+    def save_line_config(self, dataset, x1, y1, x2, y2, dir_x, dir_y):
         """Save line configuration for a dataset."""
         try:
+            # Create dataset directory if it doesn't exist
+            dataset_dir = self.config_dir / dataset
+            dataset_dir.mkdir(parents=True, exist_ok=True)
+            
             config = {
                 "line": {
                     "x1": int(x1),
@@ -170,11 +201,15 @@ class SimpleLineMarker:
                     "x2": int(x2),
                     "y2": int(y2)
                 },
+                "direction": {
+                    "x": int(dir_x),
+                    "y": int(dir_y)
+                },
                 "dataset": dataset,
                 "saved_at": str(np.datetime64('now'))
             }
             
-            config_file = self.config_dir / f"{dataset}_line_config.json"
+            config_file = dataset_dir / "line.json"
             with open(config_file, 'w') as f:
                 json.dump(config, f, indent=2)
             
@@ -185,9 +220,9 @@ class SimpleLineMarker:
     def load_line_config(self, dataset):
         """Load line configuration for a dataset."""
         try:
-            config_file = self.config_dir / f"{dataset}_line_config.json"
+            config_file = self.config_dir / dataset / "line.json"
             if not config_file.exists():
-                return None, "No saved configuration found for this dataset"
+                return None, "No saved configuration found for this dataset", 0, 0, 100, 100, 0, 0
             
             with open(config_file, 'r') as f:
                 config = json.load(f)
@@ -198,18 +233,23 @@ class SimpleLineMarker:
             x2 = line.get("x2", 100)
             y2 = line.get("y2", 100)
             
-            # Update line points
+            direction = config.get("direction", {})
+            dir_x = direction.get("x", 0)
+            dir_y = direction.get("y", 0)
+            
+            # Update line points and direction
             self.line_points = [(x1, y1), (x2, y2)]
+            self.direction_arrow = (dir_x, dir_y) if dir_x != 0 or dir_y != 0 else None
             
             # Update current frame display
             if self.current_frame is not None:
                 frame_display = self.draw_line_on_frame()
-                return frame_display, f"✅ Loaded line configuration for {dataset}: ({x1},{y1}) -> ({x2},{y2})", x1, y1, x2, y2
+                return frame_display, f"✅ Loaded line configuration for {dataset}: ({x1},{y1}) -> ({x2},{y2})", x1, y1, x2, y2, dir_x, dir_y
             else:
-                return None, f"✅ Loaded line configuration for {dataset}: ({x1},{y1}) -> ({x2},{y2})", x1, y1, x2, y2
+                return None, f"✅ Loaded line configuration for {dataset}: ({x1},{y1}) -> ({x2},{y2})", x1, y1, x2, y2, dir_x, dir_y
                 
         except Exception as e:
-            return None, f"❌ Error loading configuration: {str(e)}", 0, 0, 100, 100
+            return None, f"❌ Error loading configuration: {str(e)}", 0, 0, 100, 100, 0, 0
     
     def set_dataset(self, dataset):
         """Set the current dataset."""
@@ -259,7 +299,8 @@ def create_line_marking_interface():
                 gr.Markdown("2. Use the slider to select the best frame")
                 gr.Markdown("3. Click once to set line start point")
                 gr.Markdown("4. Click again to set line end point")
-                gr.Markdown("5. Use 'Reset Line' to start over")
+                gr.Markdown("5. Click a third time to set direction arrow (indicates 'IN' side)")
+                gr.Markdown("6. Use 'Reset Line' to start over")
                 
                 reset_btn = gr.Button("Reset Line", variant="secondary")
                 
@@ -296,6 +337,13 @@ def create_line_marking_interface():
             y1_input = gr.Number(label="Y1", value=0, precision=0)
             x2_input = gr.Number(label="X2", value=100, precision=0)
             y2_input = gr.Number(label="Y2", value=100, precision=0)
+        
+        gr.Markdown("### 🧭 Direction Arrow")
+        gr.Markdown("Direction arrow coordinates (indicates 'IN' side):")
+        
+        with gr.Row():
+            dir_x_input = gr.Number(label="Direction X", value=0, precision=0)
+            dir_y_input = gr.Number(label="Direction Y", value=0, precision=0)
         
         gr.Markdown("### 🚀 Generate People Counter Command")
         gr.Markdown("Configure the detection parameters and generate the command to run people counting:")
@@ -345,13 +393,13 @@ def create_line_marking_interface():
         preview_image.select(
             fn=line_marker.on_image_click,
             inputs=[],
-            outputs=[preview_image, status_text, x1_input, y1_input, x2_input, y2_input]
+            outputs=[preview_image, status_text, x1_input, y1_input, x2_input, y2_input, dir_x_input, dir_y_input]
         )
         
         reset_btn.click(
             fn=line_marker.reset_line,
             inputs=[],
-            outputs=[preview_image, status_text, x1_input, y1_input, x2_input, y2_input]
+            outputs=[preview_image, status_text, x1_input, y1_input, x2_input, y2_input, dir_x_input, dir_y_input]
         )
         
         generate_btn.click(
@@ -371,12 +419,12 @@ def create_line_marking_interface():
         load_config_btn.click(
             fn=line_marker.load_line_config,
             inputs=[dataset_dropdown],
-            outputs=[preview_image, config_status, x1_input, y1_input, x2_input, y2_input]
+            outputs=[preview_image, config_status, x1_input, y1_input, x2_input, y2_input, dir_x_input, dir_y_input]
         )
         
         save_config_btn.click(
             fn=line_marker.save_line_config,
-            inputs=[dataset_dropdown, x1_input, y1_input, x2_input, y2_input],
+            inputs=[dataset_dropdown, x1_input, y1_input, x2_input, y2_input, dir_x_input, dir_y_input],
             outputs=[config_status]
         )
     

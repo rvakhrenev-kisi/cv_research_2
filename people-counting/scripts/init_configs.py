@@ -42,6 +42,7 @@ def main() -> None:
     default_detection = defaults_dir / "detection.yaml"
     default_tracker = defaults_dir / "tracker" / "botsort.yaml"
     default_line = defaults_dir / "line.json"
+    default_video = defaults_dir / "video.yaml"
 
     datasets = [p.name for p in input_dir.iterdir() if p.is_dir()]
     if not datasets:
@@ -59,6 +60,9 @@ def main() -> None:
         copy_if_missing(default_tracker, ds_cfg_dir / "tracker.yaml")
         # line.json
         copy_if_missing(default_line, ds_cfg_dir / "line.json")
+
+        # video.yaml (per-dataset video processing params)
+        copy_if_missing(default_video, ds_cfg_dir / "video.yaml")
 
         print(f"Initialized configs for dataset: {ds}")
 

@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Dict, Any
 
 class ConfigLoader:
-    def __init__(self, config_file="config.yaml"):
+    def __init__(self, config_file="configs/global.yaml"):
         self.config_file = config_file
         self.config = self.load_config()
     
@@ -129,10 +129,12 @@ class ConfigLoader:
                 else:
                     line = cfg
                 if all(k in line for k in ("x1","y1","x2","y2")):
+                    direction = cfg.get("direction", {})
                     return {
                         "start": [line["x1"], line["y1"]],
                         "end": [line["x2"], line["y2"]],
-                        "direction": cfg.get("direction", "unknown")
+                        "direction": direction.get("direction", "unknown") if isinstance(direction, dict) else direction,
+                        "direction_point": [direction.get("x", 0), direction.get("y", 0)] if isinstance(direction, dict) else None
                     }
 
             # 2) Legacy JSON
@@ -142,10 +144,12 @@ class ConfigLoader:
                     cfg = json.load(f)
                 line = cfg.get("line", cfg)
                 if all(k in line for k in ("x1","y1","x2","y2")):
+                    direction = cfg.get("direction", {})
                     return {
                         "start": [line["x1"], line["y1"]],
                         "end": [line["x2"], line["y2"]],
-                        "direction": cfg.get("direction", "unknown")
+                        "direction": direction.get("direction", "unknown") if isinstance(direction, dict) else direction,
+                        "direction_point": [direction.get("x", 0), direction.get("y", 0)] if isinstance(direction, dict) else None
                     }
         except Exception:
             pass
@@ -154,27 +158,26 @@ class ConfigLoader:
         return lines.get(dataset, {})
 
     def get_dataset_detection_config(self, dataset: str) -> Dict[str, Any]:
-        """Load detection.yaml for dataset and merge over global detection defaults."""
+        """Load detection.yaml for dataset ONLY (no global merge)."""
         import yaml as _yaml
-        result = dict(self.get_detection_config())
         ds_file = Path("configs") / "datasets" / dataset / "detection.yaml"
         if ds_file.exists():
             try:
                 with open(ds_file, 'r') as f:
                     ds_cfg = _yaml.safe_load(f) or {}
                 if isinstance(ds_cfg, dict):
-                    result.update(ds_cfg)
+                    return ds_cfg
             except Exception:
-                pass
-        return result
+                return {}
+        return {}
 
     def get_dataset_tracker_yaml(self, dataset: str) -> str:
-        """Return tracker yaml path for dataset if exists, else global tracker yaml."""
+        """Return tracker yaml path for dataset if exists, else default template."""
         ds_yaml = Path("configs") / "datasets" / dataset / "tracker.yaml"
         if ds_yaml.exists():
             return str(ds_yaml)
-        tracker = self.get_tracker_config()
-        return tracker.get("yaml", "trackers/botsort.yaml")
+        # Fallback to defaults template
+        return str(Path("configs") / "defaults" / "tracker" / "botsort.yaml")
     
     def get_performance_config(self) -> Dict[str, Any]:
         """Get performance configuration"""

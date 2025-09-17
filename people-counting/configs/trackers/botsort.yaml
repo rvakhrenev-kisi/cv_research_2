@@ -1,3 +1,8 @@
+# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
+
+# BoT-SORT tracker defaults for mode="track"
+# Docs: https://docs.ultralytics.com/modes/track/
+
 tracker_type: botsort # (str) Tracker backend: botsort|bytetrack; choose botsort to enable BoT-SORT features
 track_high_thresh: 0.55 # (float) First-stage match threshold; raise for cleaner tracks, lower to keep more
 track_low_thresh: 0.12 # (float) Second-stage threshold for low-score matches; balances recovery vs drift
@@ -14,5 +19,3 @@ proximity_thresh: 0.3 # (float) Min IoU to consider tracks proximate for ReID; h
 appearance_thresh: 0.75 # (float) Min appearance similarity for ReID; raise to avoid identity swaps
 with_reid: true # (bool) Enable ReID model use; needs extra model and compute
 model: auto # (str) ReID model name/path; "auto" uses detector features if available
-
-

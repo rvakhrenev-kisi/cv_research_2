@@ -12,17 +12,19 @@ import sys
 import platform
 
 class LineCounter:
-    def __init__(self, start_point, end_point, counting_region=30):
+    def __init__(self, start_point, end_point, direction_point=None, counting_region=30):
         """
         Initialize a line counter for tracking objects crossing a line.
         
         Args:
             start_point: Starting point of the line (x1, y1)
             end_point: Ending point of the line (x2, y2)
+            direction_point: Point indicating the "IN" direction (x, y)
             counting_region: Width of the region around the line to detect crossings
         """
         self.start_point = np.array(start_point)
         self.end_point = np.array(end_point)
+        self.direction_point = np.array(direction_point) if direction_point else None
         self.counting_region = counting_region
         
         # Calculate line properties
@@ -30,6 +32,13 @@ class LineCounter:
         self.line_length = np.linalg.norm(self.line_vector)
         self.unit_line_vector = self.line_vector / self.line_length
         self.normal_vector = np.array([-self.unit_line_vector[1], self.unit_line_vector[0]])
+        
+        # Calculate direction reference if direction_point is provided
+        if self.direction_point is not None:
+            # Calculate which side of the line the direction point is on
+            self.direction_side = self.get_distance_from_line(self.direction_point)
+        else:
+            self.direction_side = None
         
         # Tracking data
         self.object_tracks = defaultdict(list)
@@ -99,12 +108,25 @@ class LineCounter:
             # Allow multiple crossings - don't add to crossed_objects
             
             # Determine direction of crossing
-            if current_distance > prev_distance:
-                self.up_count += 1
-                return "up"
+            if self.direction_side is not None:
+                # Use user-defined direction arrow to determine "in" vs "out"
+                # If moving towards the direction side, it's "in" (up)
+                # If moving away from the direction side, it's "out" (down)
+                if (current_distance > prev_distance and self.direction_side > 0) or \
+                   (current_distance < prev_distance and self.direction_side < 0):
+                    self.up_count += 1
+                    return "up"
+                else:
+                    self.down_count += 1
+                    return "down"
             else:
-                self.down_count += 1
-                return "down"
+                # Fallback to original logic if no direction specified
+                if current_distance > prev_distance:
+                    self.up_count += 1
+                    return "up"
+                else:
+                    self.down_count += 1
+                    return "down"
         
         return False
 
@@ -162,6 +184,7 @@ def parse_arguments():
                         help="Type of YOLO model to use (yolo12)")
     parser.add_argument("--line-start", type=int, nargs=2, default=[0, 0], help="Starting point of counting line (x y)")
     parser.add_argument("--line-end", type=int, nargs=2, default=[0, 0], help="Ending point of counting line (x y)")
+    parser.add_argument("--direction-point", type=int, nargs=2, default=None, help="Direction point indicating 'IN' side (x y)")
     parser.add_argument("--confidence", type=float, default=0.3, help="Detection confidence threshold")
     parser.add_argument("--iou", type=float, default=0.3, help="IoU threshold for NMS")
     parser.add_argument("--imgsz", type=int, default=640, help="Input image size for inference")
@@ -183,7 +206,7 @@ def parse_arguments():
 def process_video(video_path, line_start, line_end, model_path, confidence=0.3, classes=[0], 
                  output_path="object_counting_output.mp4", show=False, verbose=False, output_height=480,
                  iou=0.3, imgsz=640, agnostic_nms=False, track_high_thresh=0.6, track_low_thresh=0.1, 
-                 new_track_thresh=0.7, match_thresh=0.8, dataset="unknown"):
+                 new_track_thresh=0.7, match_thresh=0.8, dataset="unknown", direction_point=None):
     """
     Process a video to count people crossing a line with progress tracking.
     
@@ -265,7 +288,7 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
     down_count = 0
     
     # Use the LineCounter approach
-    line_counter = LineCounter(line_start, line_end)
+    line_counter = LineCounter(line_start, line_end, direction_point)
     
     # Check for GPU availability
     print(f"🔍 Starting GPU detection...")
@@ -640,7 +663,7 @@ def main():
         lx2, ly2 = args.line_end
 
         # Initialize line counter for Ultralytics tracker
-        line_counter = LineCounter(args.line_start, args.line_end)
+        line_counter = LineCounter(args.line_start, args.line_end, args.direction_point)
 
         # Stream tracking to avoid RAM accumulation and to let us draw overlays
         stream = model.track(
@@ -752,7 +775,8 @@ def main():
         track_low_thresh=args.track_low_thresh,
         new_track_thresh=args.new_track_thresh,
         match_thresh=args.match_thresh,
-        dataset=args.dataset
+        dataset=args.dataset,
+        direction_point=args.direction_point
     )
     
     # Print results

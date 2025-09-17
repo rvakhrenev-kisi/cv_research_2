@@ -18,3 +18,4 @@ requirements.txt
 
 bin/*
 !bin/.gitkeep
+.venv/*

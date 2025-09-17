@@ -1,0 +1,6 @@
+confidence: 0.1
+iou: 0.3
+imgsz: 640
+agnostic_nms: false
+
+

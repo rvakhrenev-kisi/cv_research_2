@@ -32,7 +32,12 @@ class BatchTailgatingDetectorV2:
         
         # Set up directories
         self.output_dir = Path(self.output_config.get("base_dir", "outputs"))
-        self.datasets = ["cisco", "vortex", "courtyard"]
+        # Discover datasets from input/ to stay in sync with configs
+        input_root = Path("input")
+        if input_root.exists():
+            self.datasets = [p.name for p in input_root.iterdir() if p.is_dir()]
+        else:
+            self.datasets = ["cisco", "vortex", "courtyard"]
         
         # Create output directory
         self.output_dir.mkdir(exist_ok=True)
@@ -128,14 +133,12 @@ class BatchTailgatingDetectorV2:
             }
     
     def get_video_files(self, dataset):
-        """Get video files for a dataset."""
+        """Get video files for a dataset from input/<dataset>/"""
         video_extensions = ["*.mp4", "*.avi", "*.mov", "*.mkv"]
         video_files = []
-        
+        base = Path("input") / dataset
         for ext in video_extensions:
-            pattern = f"../{dataset}/{ext}"
-            video_files.extend(glob.glob(pattern))
-        
+            video_files.extend([str(p) for p in base.glob(ext)])
         return sorted([Path(f) for f in video_files])
     
     def extract_count_from_output(self, output_text):
@@ -169,8 +172,11 @@ class BatchTailgatingDetectorV2:
         try:
             # Create output filename
             video_name = video_path.stem
+            # Per-dataset output folder
+            dataset_out_dir = self.run_dir / dataset
+            dataset_out_dir.mkdir(parents=True, exist_ok=True)
             output_name = f"{dataset}_{video_name}.mp4"
-            output_path = self.run_dir / output_name
+            output_path = dataset_out_dir / output_name
             
             # Use the virtual environment Python explicitly
             import sys
@@ -184,8 +190,9 @@ class BatchTailgatingDetectorV2:
                 # Fallback to sys.executable
                 python_cmd = sys.executable
             
-            # Get parameters from configuration
-            confidence = self.detection_config.get("confidence", 0.1)
+            # Get parameters from configuration (allow per-dataset overrides)
+            ds_detection = self.config_loader.get_dataset_detection_config(dataset)
+            confidence = ds_detection.get("confidence", self.detection_config.get("confidence", 0.1))
             model_type = self.model_config.get("type", "yolo12")
             output_height = self.video_config.get("output_height", 0)
             verbose = self.video_config.get("verbose", True)
@@ -206,9 +213,9 @@ class BatchTailgatingDetectorV2:
             ]
 
             # Add detection params from config
-            iou = self.detection_config.get("iou", 0.3)
-            imgsz = self.detection_config.get("imgsz", 640)
-            agnostic_nms = self.detection_config.get("agnostic_nms", False)
+            iou = ds_detection.get("iou", self.detection_config.get("iou", 0.3))
+            imgsz = ds_detection.get("imgsz", self.detection_config.get("imgsz", 640))
+            agnostic_nms = ds_detection.get("agnostic_nms", self.detection_config.get("agnostic_nms", False))
             cmd.extend(["--iou", str(iou)])
             cmd.extend(["--imgsz", str(imgsz)])
             if agnostic_nms:
@@ -216,7 +223,8 @@ class BatchTailgatingDetectorV2:
 
             # Add tracking params or Ultralytics tracker yaml
             if use_ultra_tracker:
-                tracker_yaml = self.tracker_config.get("yaml", "trackers/botsort.yaml")
+                # Prefer per-dataset tracker yaml if present
+                tracker_yaml = self.config_loader.get_dataset_tracker_yaml(dataset)
                 cmd.extend(["--tracker-yaml", tracker_yaml])
             else:
                 cmd.extend(["--track-high-thresh", str(self.tracking_config.get("track_high_thresh", 0.6))])
@@ -333,6 +341,9 @@ class BatchTailgatingDetectorV2:
                     total_successful += 1
             
             all_results[dataset] = dataset_results
+
+            # Copy per-dataset configs used
+            self.copy_dataset_configs_to_output(dataset)
         
         # Save results summary
         self.save_results_summary(all_results, total_processed, total_successful)
@@ -442,6 +453,31 @@ class BatchTailgatingDetectorV2:
             print(f"   📋 Config copied to: {config_dest}")
         else:
             print(f"   ⚠️  Config file not found: {config_source}")
+
+    def copy_dataset_configs_to_output(self, dataset: str):
+        """Copy dataset-level configs (detection.yaml, tracker.yaml, line.json) into outputs/<run>/<dataset>/configs_used"""
+        import shutil
+        ds_cfg_dir = Path("configs") / "datasets" / dataset
+        dest_dir = self.run_dir / dataset / "configs_used"
+        dest_dir.mkdir(parents=True, exist_ok=True)
+
+        # detection.yaml
+        det_src = ds_cfg_dir / "detection.yaml"
+        if det_src.exists():
+            shutil.copy2(det_src, dest_dir / "detection.yaml")
+        # tracker.yaml
+        trk_src = ds_cfg_dir / "tracker.yaml"
+        # If per-dataset not present but global specified and used, still copy global
+        if trk_src.exists():
+            shutil.copy2(trk_src, dest_dir / "tracker.yaml")
+        else:
+            global_yaml = self.tracker_config.get("yaml")
+            if global_yaml and Path(global_yaml).exists():
+                shutil.copy2(global_yaml, dest_dir / Path(global_yaml).name)
+        # line.json
+        line_src = ds_cfg_dir / "line.json"
+        if line_src.exists():
+            shutil.copy2(line_src, dest_dir / "line.json")
 
     def copy_tracker_yaml_to_output(self):
         """If Ultralytics tracker is enabled, copy its YAML to the run directory."""

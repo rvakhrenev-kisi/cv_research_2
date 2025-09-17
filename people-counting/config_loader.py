@@ -112,27 +112,69 @@ class ConfigLoader:
     
     def get_line_config(self, dataset: str) -> Dict[str, Any]:
         """Get line configuration for specific dataset.
-        Source of truth: configs/{dataset}_line_config.json; fallback to config.yaml if absent.
+        Priority:
+          1) configs/datasets/<dataset>/line.json
+          2) legacy configs/<dataset>_line_config.json
+          3) legacy config.yaml 'lines'
         """
-        # Try JSON from configs/
-        cfg_path = Path("configs") / f"{dataset}_line_config.json"
-        if cfg_path.exists():
-            try:
-                import json
-                with open(cfg_path, 'r') as f:
+        try:
+            import json
+            # 1) New per-dataset location
+            ds_path = Path("configs") / "datasets" / dataset / "line.json"
+            if ds_path.exists():
+                with open(ds_path, 'r') as f:
                     cfg = json.load(f)
-                line = cfg.get("line", {})
+                if "line" in cfg:
+                    line = cfg["line"]
+                else:
+                    line = cfg
                 if all(k in line for k in ("x1","y1","x2","y2")):
                     return {
                         "start": [line["x1"], line["y1"]],
                         "end": [line["x2"], line["y2"]],
                         "direction": cfg.get("direction", "unknown")
                     }
-            except Exception:
-                pass
-        # Fallback to legacy config.yaml 'lines'
+
+            # 2) Legacy JSON
+            legacy_path = Path("configs") / f"{dataset}_line_config.json"
+            if legacy_path.exists():
+                with open(legacy_path, 'r') as f:
+                    cfg = json.load(f)
+                line = cfg.get("line", cfg)
+                if all(k in line for k in ("x1","y1","x2","y2")):
+                    return {
+                        "start": [line["x1"], line["y1"]],
+                        "end": [line["x2"], line["y2"]],
+                        "direction": cfg.get("direction", "unknown")
+                    }
+        except Exception:
+            pass
+        # 3) Fallback to legacy config.yaml 'lines'
         lines = self.config.get("lines", {})
         return lines.get(dataset, {})
+
+    def get_dataset_detection_config(self, dataset: str) -> Dict[str, Any]:
+        """Load detection.yaml for dataset and merge over global detection defaults."""
+        import yaml as _yaml
+        result = dict(self.get_detection_config())
+        ds_file = Path("configs") / "datasets" / dataset / "detection.yaml"
+        if ds_file.exists():
+            try:
+                with open(ds_file, 'r') as f:
+                    ds_cfg = _yaml.safe_load(f) or {}
+                if isinstance(ds_cfg, dict):
+                    result.update(ds_cfg)
+            except Exception:
+                pass
+        return result
+
+    def get_dataset_tracker_yaml(self, dataset: str) -> str:
+        """Return tracker yaml path for dataset if exists, else global tracker yaml."""
+        ds_yaml = Path("configs") / "datasets" / dataset / "tracker.yaml"
+        if ds_yaml.exists():
+            return str(ds_yaml)
+        tracker = self.get_tracker_config()
+        return tracker.get("yaml", "trackers/botsort.yaml")
     
     def get_performance_config(self) -> Dict[str, Any]:
         """Get performance configuration"""

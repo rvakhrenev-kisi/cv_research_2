@@ -1,5 +1,5 @@
-confidence: 0.1
-iou: 0.5
+confidence: 0.12
+iou: 0.4
 imgsz: 1536
 agnostic_nms: false
 

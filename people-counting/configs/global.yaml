@@ -1,7 +1,7 @@
 # Global (non-dataset) configuration
 
 model:
-  name: "yolo11n.pt"
+  name: "yolo11m.pt"
   type: "yolo12"
 
 tracker:

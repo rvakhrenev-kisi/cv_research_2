@@ -504,9 +504,13 @@ class BatchTailgatingDetectorV2:
 def main():
     parser = argparse.ArgumentParser(description="Batch tailgating detection with configuration")
     parser.add_argument("--config", default="configs/global.yaml", help="Configuration file path")
+    parser.add_argument("--datasets", nargs='*', help="Optional list of datasets to process (e.g., cisco vortex)")
     args = parser.parse_args()
     
     detector = BatchTailgatingDetectorV2(args.config)
+    if args.datasets:
+        # Restrict datasets to user-specified list
+        detector.datasets = [ds for ds in detector.datasets if ds in set(args.datasets)]
     detector.run_batch_detection()
 
 if __name__ == "__main__":

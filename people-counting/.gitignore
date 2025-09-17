@@ -7,7 +7,6 @@ output/*
 !output/.gitkeep
 outputs/*
 !outputs/.gitkeep
-input/*
 !input/.gitkeep
 models/*
 !models/.gitkeep

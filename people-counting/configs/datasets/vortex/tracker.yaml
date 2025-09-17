@@ -1,9 +1,9 @@
 tracker_type: botsort # (str) Tracker backend: botsort|bytetrack; choose botsort to enable BoT-SORT features
-track_high_thresh: 0.3 # (float) First-stage match threshold; raise for cleaner tracks, lower to keep more
-track_low_thresh: 0.12 # (float) Second-stage threshold for low-score matches; balances recovery vs drift
-new_track_thresh: 0.3 # (float) Start a new track if no match ≥ this; higher reduces false tracks
-track_buffer: 50 # (int) Frames to keep lost tracks alive; higher handles occlusion, increases ID switches risk
-match_thresh: 0.5 # (float) Association similarity threshold (IoU/cost); tune with detector quality
+track_high_thresh: 0.45 # slightly lower to reduce missed associations
+track_low_thresh: 0.1 # keep default low threshold similar to legacy
+new_track_thresh: 0.5 # align with legacy ByteTrack new track threshold
+track_buffer: 30 # align with legacy ByteTrack buffer
+match_thresh: 0.7 # lower to make matching less strict, reduce ID breaks
 fuse_score: True # (bool) Fuse detection score with motion/IoU for matching; stabilizes weak detections
 
 # BoT-SORT specifics

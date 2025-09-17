@@ -190,6 +190,20 @@ class ConfigLoader:
     def get_cctv_config(self) -> Dict[str, Any]:
         """Get CCTV optimization configuration"""
         return self.config.get("cctv", {})
+
+    def get_dataset_video_config(self, dataset: str) -> Dict[str, Any]:
+        """Load video.yaml for dataset ONLY (per-dataset video processing params)."""
+        import yaml as _yaml
+        ds_file = Path("configs") / "datasets" / dataset / "video.yaml"
+        if ds_file.exists():
+            try:
+                with open(ds_file, 'r') as f:
+                    ds_cfg = _yaml.safe_load(f) or {}
+                if isinstance(ds_cfg, dict):
+                    return ds_cfg
+            except Exception:
+                return {}
+        return {}
     
     def print_config_summary(self):
         """Print a summary of current configuration"""

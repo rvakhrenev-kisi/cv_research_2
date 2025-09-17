@@ -176,6 +176,7 @@ class BatchTailgatingDetectorV2:
                 "--video", str(video_path),
                 "--model", model_path,
                 "--model-type", model_type,
+                "--dataset", dataset,
                 "--line-start", str(line_config["x1"]), str(line_config["y1"]),
                 "--line-end", str(line_config["x2"]), str(line_config["y2"]),
                 "--confidence", str(confidence),

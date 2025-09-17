@@ -3,7 +3,7 @@
 
 # Model Configuration
 model:
-  name: "yolo11x.pt"  # Options: yolo11n.pt, yolo11s.pt, yolo11m.pt, yolo11l.pt, yolo11x.pt
+  name: "yolo11n.pt"  # Options: yolo11n.pt, yolo11s.pt, yolo11m.pt, yolo11l.pt, yolo11x.pt
   type: "yolo12"      # Legacy parameter (not used in detection logic, kept for compatibility)
 
 # Tracker Configuration (Ultralytics trackers)
@@ -15,18 +15,18 @@ tracker:
 
 # Detection Parameters
 detection:
-  confidence: 0.3     # Confidence threshold (0.01-0.9)
-  iou: 0.6        # IoU threshold for NMS (0.1-0.9)
+  confidence: 0.4     # Confidence threshold (0.01-0.9)
+  iou: 0.8        # IoU threshold for NMS (0.1-0.9)
   imgsz: 1536         # Input image size (320, 416, 512, 640, 832, 1024, 1280, 1536)
   agnostic_nms: false # Class-agnostic NMS (true/false)
 
 # Tracking Parameters (ByteTrack)
 tracking:
-  track_high_thresh: 0.35  # High confidence threshold for tracking (0.1-0.9)
+  track_high_thresh: 0.55  # High confidence threshold for tracking (0.1-0.9)
   track_low_thresh: 0.12   # Low confidence threshold for tracking (0.1-0.9)
-  new_track_thresh: 0.35   # New track initialization threshold (0.1-0.9)
+  new_track_thresh: 0.55   # New track initialization threshold (0.1-0.9)
   track_buffer: 50        # Number of frames to keep lost tracks (10-100)
-  match_thresh: 0.5      # Matching threshold for tracking (0.1-0.9)
+  match_thresh: 0.75      # Matching threshold for tracking (0.1-0.9)
   frame_rate: 10       # Expected frame rate (15-60)
 
 # Video Processing

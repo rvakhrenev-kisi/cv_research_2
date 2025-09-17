@@ -168,6 +168,7 @@ def parse_arguments():
     parser.add_argument("--show", action="store_true", help="Display the video while processing")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
     parser.add_argument("--classes", type=int, nargs="+", default=[0], help="Classes to detect (default: 0 for person)")
+    parser.add_argument("--dataset", type=str, default="unknown", help="Dataset name to control line-cross logic (e.g., courtyard/cisco/vortex)")
     parser.add_argument("--tracker-yaml", type=str, default="", help="Optional Ultralytics tracker YAML (e.g., trackers/botsort.yaml)")
     return parser.parse_args()
 
@@ -398,10 +399,16 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
                 if tracker_id is None:
                     continue
                     
-                # Calculate center point of the bounding box
+                # Calculate point of interest for crossing check based on dataset
                 x1, y1, x2, y2 = xyxy
-                center_x = (x1 + x2) / 2
-                center_y = (y1 + y2) / 2
+                if args.dataset.lower() == "courtyard":
+                    # Use bottom-center of the box
+                    center_x = (x1 + x2) / 2
+                    center_y = y2
+                else:
+                    # Use middle of the box (default for cisco/vortex)
+                    center_x = (x1 + x2) / 2
+                    center_y = (y1 + y2) / 2
                 
                 # Update line counter
                 crossing = line_counter.update(tracker_id, (center_x, center_y))

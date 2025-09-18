@@ -40,9 +40,11 @@ def main() -> None:
 
     # Default templates
     default_detection = defaults_dir / "detection.yaml"
-    default_tracker = defaults_dir / "tracker" / "botsort.yaml"
-    default_line = defaults_dir / "line.json"
     default_video = defaults_dir / "video.yaml"
+    # Per-tracker defaults
+    default_bt = defaults_dir / "tracker" / "bytetrack.yaml"
+    default_bs = defaults_dir / "tracker" / "botsort.yaml"
+    default_oc = defaults_dir / "tracker" / "ocsort.yaml"
 
     datasets = [p.name for p in input_dir.iterdir() if p.is_dir()]
     if not datasets:
@@ -56,11 +58,15 @@ def main() -> None:
 
         # detection.yaml
         copy_if_missing(default_detection, ds_cfg_dir / "detection.yaml")
-        # tracker.yaml
-        copy_if_missing(default_tracker, ds_cfg_dir / "tracker.yaml")
-        # line.json
-        copy_if_missing(default_line, ds_cfg_dir / "line.json")
-
+        # per-tracker configs
+        copy_if_missing(default_bt, ds_cfg_dir / "tracker_bytetrack.yaml")
+        copy_if_missing(default_bs, ds_cfg_dir / "tracker_botsort.yaml")
+        copy_if_missing(default_oc, ds_cfg_dir / "tracker_ocsort.yaml")
+        # selection file
+        select_file = ds_cfg_dir / "tracker_select.yaml"
+        if not select_file.exists():
+            ensure_dir(select_file.parent)
+            select_file.write_text("tracker_type: bytetrack\n", encoding="utf-8")
         # video.yaml (per-dataset video processing params)
         copy_if_missing(default_video, ds_cfg_dir / "video.yaml")
 

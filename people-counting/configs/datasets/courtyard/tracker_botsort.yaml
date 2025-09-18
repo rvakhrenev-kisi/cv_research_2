@@ -1,0 +1,15 @@
+tracker_type: botsort
+# BoT-SORT tuned for courtyard
+track_high_thresh: 0.55    # cleaner tracks
+track_low_thresh: 0.12     # recovery on weak frames
+new_track_thresh: 0.55     # new ID creation threshold
+match_thresh: 0.75         # association threshold
+track_buffer: 50           # keep IDs across short occlusions
+fuse_score: true           # stabilize with score fusion
+gmc_method: none           # static camera
+with_reid: true            # appearance helps side views
+proximity_thresh: 0.3      # stricter proximity
+appearance_thresh: 0.75    # stricter appearance
+model: auto
+
+

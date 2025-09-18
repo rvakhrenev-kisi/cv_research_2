@@ -172,12 +172,37 @@ class ConfigLoader:
         return {}
 
     def get_dataset_tracker_yaml(self, dataset: str) -> str:
-        """Return tracker yaml path for dataset if exists, else default template."""
-        ds_yaml = Path("configs") / "datasets" / dataset / "tracker.yaml"
-        if ds_yaml.exists():
-            return str(ds_yaml)
-        # Fallback to defaults template
-        return str(Path("configs") / "defaults" / "tracker" / "botsort.yaml")
+        """Return tracker config path for selected tracker type for this dataset."""
+        import yaml as _yaml
+        # Read tracker type from dataset detection.yaml
+        det_file = Path("configs") / "datasets" / dataset / "detection.yaml"
+        tracker_type = "bytetrack"
+        if det_file.exists():
+            try:
+                with open(det_file, 'r') as f:
+                    det_cfg = _yaml.safe_load(f) or {}
+                    tracker_type = str(det_cfg.get("tracker_type", tracker_type)).lower()
+            except Exception:
+                pass
+
+        base = Path("configs") / "datasets" / dataset
+        candidates = {
+            "bytetrack": base / "tracker_bytetrack.yaml",
+            "botsort": base / "tracker_botsort.yaml",
+            "ocsort": base / "tracker_ocsort.yaml",
+        }
+        path = candidates.get(tracker_type, candidates["bytetrack"])
+        if path.exists():
+            return str(path)
+        # Fallback to defaults template per type
+        def_base = Path("configs") / "defaults" / "tracker"
+        def_map = {
+            "bytetrack": def_base / "bytetrack.yaml",
+            "botsort": def_base / "botsort.yaml",
+            "ocsort": def_base / "ocsort.yaml",
+        }
+        def_path = def_map.get(tracker_type, def_map["bytetrack"])
+        return str(def_path)
     
     def get_performance_config(self) -> Dict[str, Any]:
         """Get performance configuration"""

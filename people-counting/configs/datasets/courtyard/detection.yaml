@@ -2,5 +2,6 @@ confidence: 0.4
 iou: 0.8
 imgsz: 1536
 agnostic_nms: false
+tracker_type: botsort
 
 

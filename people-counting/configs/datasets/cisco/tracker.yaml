@@ -1,18 +1,3 @@
-tracker_type: botsort # (str) Tracker backend: botsort|bytetrack; choose botsort to enable BoT-SORT features
-track_high_thresh: 0.25 # lower to accept more detections as tracks
-track_low_thresh: 0.05 # allow recovery on weak frames
-new_track_thresh: 0.25 # start new tracks more readily at entry
-track_buffer: 90 # keep lost IDs longer to bridge gaps
-match_thresh: 0.4 # more forgiving association to reduce ID breaks
-fuse_score: true # (bool) Fuse detection score with motion/IoU for matching; stabilizes weak detections
-
-# BoT-SORT specifics
-gmc_method: none # (str) Global motion compensation: sparseOptFlow|orb|none; helps moving camera scenes
-
-# ReID settings (keep off for CCTV/low-res)
-proximity_thresh: 0.5 # (float) Min IoU to consider tracks proximate for ReID; higher is stricter
-appearance_thresh: 0.5 # (float) Min appearance similarity for ReID; raise to avoid identity swaps
-with_reid: false # (bool) Enable ReID model use; needs extra model and compute
-model: auto # (str) ReID model name/path; "auto" uses detector features if available
+tracker_type: ocsort # select: bytetrack | botsort | ocsort
 
 

@@ -5,9 +5,9 @@ model:
   type: "yolo12"
 
 tracker:
-  use_ultralytics: true
+  use_ultralytics: false
   backend: botsort
-  yaml: configs/trackers/botsort.yaml
+  yaml: ""
   overrides: {}
 
 video:

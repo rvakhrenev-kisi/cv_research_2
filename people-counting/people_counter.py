@@ -451,7 +451,15 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
             detections = sv.Detections.from_ultralytics(results[0])
         
             # Update tracker
-            detections = tracker.update_with_detections(detections)
+            if hasattr(tracker, "update_with_detections"):
+                detections = tracker.update_with_detections(
+                    detections,
+                    img_h=orig_height,
+                    img_w=orig_width,
+                    input_size=imgsz,
+                )
+            else:
+                detections = tracker.update_with_detections(detections)
             
             # Create a clean frame for display and a clean frame for output
             display_frame = frame.copy()
@@ -459,9 +467,18 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
             # Process each detection and update tracking
             detection_info = []  # Store detection info for drawing later
             
-            for i, (xyxy, _confidence, class_id, tracker_id) in enumerate(zip(
-                detections.xyxy, detections.confidence, detections.class_id, detections.tracker_id
-            )):
+            # Normalize detections arrays to avoid None iterations
+            det_xyxy = detections.xyxy if getattr(detections, "xyxy", None) is not None else []
+            num_dets = len(det_xyxy)
+            det_conf = detections.confidence if getattr(detections, "confidence", None) is not None else np.ones(num_dets, dtype=float)
+            det_cls = detections.class_id if getattr(detections, "class_id", None) is not None else np.zeros(num_dets, dtype=int)
+            det_ids = detections.tracker_id if getattr(detections, "tracker_id", None) is not None else [None] * num_dets
+
+            for i in range(num_dets):
+                xyxy = det_xyxy[i]
+                _confidence = det_conf[i] if i < len(det_conf) else 1.0
+                class_id = det_cls[i] if i < len(det_cls) else 0
+                tracker_id = det_ids[i] if i < len(det_ids) else None
                 if tracker_id is None:
                     continue
                     

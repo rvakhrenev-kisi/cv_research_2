@@ -48,7 +48,7 @@ class OCSortWrapper:
         )
         self.frame_count = 0
         
-    def update_with_detections(self, detections):
+    def update_with_detections(self, detections, img_h: Optional[int] = None, img_w: Optional[int] = None, input_size: Optional[int] = None):
         """
         Update tracker with new detections.
         
@@ -59,24 +59,32 @@ class OCSortWrapper:
             Updated detections with tracking IDs
         """
         try:
-            if detections.xyxy is None or len(detections.xyxy) == 0:
+            if detections is None or getattr(detections, "xyxy", None) is None or len(detections.xyxy) == 0:
                 # No detections, update with empty array
                 output_results = np.empty((0, 5))
-                img_info = (480, 640)  # Default image size
-                img_size = (640, 640)  # Default input size
+                ih = 0 if img_h is None else int(img_h)
+                iw = 0 if img_w is None else int(img_w)
+                # Use original frame size for both img_info and img_size to avoid extra scaling in OC-SORT
+                img_info = (ih, iw)
+                img_size = (ih, iw)
             else:
                 # Convert detections to OC-SORT format
-                scores = detections.confidence if detections.confidence is not None else np.ones(len(detections.xyxy))
+                num = len(detections.xyxy)
+                scores = detections.confidence if getattr(detections, "confidence", None) is not None else np.ones(num, dtype=float)
                 output_results = np.column_stack([detections.xyxy, scores])
-                img_info = (480, 640)  # We'll need to get actual image size
-                img_size = (640, 640)  # Default input size
+                ih = 0 if img_h is None else int(img_h)
+                iw = 0 if img_w is None else int(img_w)
+                # Use original frame size for both img_info and img_size to avoid extra scaling in OC-SORT
+                img_info = (ih, iw)
+                img_size = (ih, iw)
             
             # Update OC-SORT tracker
             tracked_results = self.ocsort.update(output_results, img_info, img_size)
             
-            if len(tracked_results) == 0:
-                # No tracks, return empty detections
-                return detections
+            if tracked_results is None or len(tracked_results) == 0:
+                # No tracks, return empty detections of same type
+                import supervision as sv
+                return sv.Detections(xyxy=np.empty((0, 4), dtype=float))
             
             # Convert back to supervision format
             if len(tracked_results.shape) == 1:
@@ -89,15 +97,20 @@ class OCSortWrapper:
                 
                 # Create new detections object with tracking IDs
                 import supervision as sv
+                # Provide default confidence and class_id to avoid None handling downstream
+                default_conf = np.ones((xyxy.shape[0],), dtype=float)
+                default_cls = np.zeros((xyxy.shape[0],), dtype=int)
                 new_detections = sv.Detections(
                     xyxy=xyxy,
-                    confidence=detections.confidence[:len(xyxy)] if detections.confidence is not None else None,
-                    class_id=detections.class_id[:len(xyxy)] if detections.class_id is not None else None,
-                    tracker_id=track_ids
+                    confidence=default_conf,
+                    class_id=default_cls,
                 )
+                # attach IDs
+                new_detections.tracker_id = track_ids
                 return new_detections
             
-            return detections
+            import supervision as sv
+            return sv.Detections(xyxy=np.empty((0, 4), dtype=float))
         except Exception as e:
             # If there's an error, return the original detections
             print(f"OC-SORT error: {e}")

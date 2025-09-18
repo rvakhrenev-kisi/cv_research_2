@@ -1,0 +1,9 @@
+tracker_type: bytetrack
+# ByteTrack parameters
+track_high_thresh: 0.55  # Higher: cleaner tracks; Lower: accept more low-conf detections as tracks
+track_low_thresh: 0.12   # Recovery threshold; Higher: stricter recovery; Lower: easier but risk drift
+new_track_thresh: 0.55   # New track creation; Higher: fewer new IDs; Lower: more new (risk false) IDs
+match_thresh: 0.75       # Association threshold; Higher: stricter matching; Lower: more associations, more swaps
+track_buffer: 50         # Frames to keep lost tracks; Higher: bridges gaps; too high may keep stale IDs
+
+

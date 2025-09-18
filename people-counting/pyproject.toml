@@ -19,6 +19,7 @@ pandas = "^2.2.0"
 tqdm = "^4.67.1"
 lap = ">=0.5.12"
 PyYAML = ">=6.0"
+filterpy = ">=1.4.5"
 
 
 [build-system]

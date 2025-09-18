@@ -1,11 +1,11 @@
 tracker_type: ocsort
-det_thresh: 0.12
-max_age: 40
-min_hits: 2
-iou_threshold: 0.25
-asso_func: iou
-delta_t: 3
-inertia: 0.4
-use_byte: false
+det_thresh: 0.10                # Detection confidence threshold; Higher: fewer detections; Lower: more (incl. noise)
+max_age: 40               # Frames to keep unmatched tracks; Higher: bridge longer gaps; too high may cause drift
+min_hits: 2               # Frames before confirming a track; Higher: more stable IDs; Lower: quicker IDs but noisier
+iou_threshold: 0.25               # IoU threshold for association; Higher: stricter (can break); Lower: easier (can swap)
+asso_func: diou                # Association function; iou|giou|ciou|diou|ct_dist; geometry-only is robust for top-down
+delta_t: 3                # Observation lag window for velocity; Higher: smoother; Lower: more reactive
+inertia: 0.3               # Motion smoothing factor; Higher: smoother trajectories; Lower: more responsive but jittery
+use_byte: false               # Enable BYTE second-stage matching; True can recover weak dets; may increase false matches
 
 

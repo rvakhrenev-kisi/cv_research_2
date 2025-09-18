@@ -360,7 +360,12 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
         print(f"✅ Model initialized on CPU (fallback)")
     
     print(f"✅ Model initialization completed")
-    
+
+    # Short-lived highlight for crossings (frames remaining per track id)
+    highlight_remaining = defaultdict(int)
+    # Track IDs that have crossed at least once (always show these)
+    crossed_ids = set()
+
     # Initialize tracker based on type
     if tracker_type == "ocsort":
         # Use our custom OC-SORT wrapper
@@ -472,7 +477,7 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
             display_frame = frame.copy()
             
             # Process each detection and update tracking
-            detection_info = []  # Store detection info for drawing later
+            detection_info = []  # Store (xyxy, tracker_id) for drawing later
             
             # Normalize detections arrays to avoid None iterations
             det_xyxy = detections.xyxy if getattr(detections, "xyxy", None) is not None else []
@@ -507,31 +512,30 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
                 if frame_count < 10 and verbose:
                     print(f"Frame {frame_count}, ID {tracker_id}: center=({center_x:.1f}, {center_y:.1f}), crossing={crossing}")
                 
-                # Determine color based on crossing status
-                color = (0, 255, 0)  # Green for default
-                if crossing == "up":
-                    color = (0, 0, 255)  # Red for up crossing
+                # If crossing detected, trigger short red highlight for this ID
+                if crossing in ("up", "down"):
+                    highlight_remaining[int(tracker_id)] = 8
+                    crossed_ids.add(int(tracker_id))
                     if verbose:
-                        print(f"  -> UP crossing detected for ID {tracker_id}")
-                elif crossing == "down":
-                    color = (255, 0, 0)  # Blue for down crossing
-                    if verbose:
-                        print(f"  -> DOWN crossing detected for ID {tracker_id}")
-                
+                        arrow = "UP" if crossing == "up" else "DOWN"
+                        print(f"  -> {arrow} crossing detected for ID {tracker_id}")
+
                 # Store detection info for drawing
-                detection_info.append((xyxy, tracker_id, color))
+                detection_info.append((xyxy, tracker_id))
             
             # Draw on display frame (original resolution)
-            for xyxy, tracker_id, _ in detection_info:
+            for xyxy, tracker_id in detection_info:
                 x1, y1, x2, y2 = xyxy
-                # OC-SORT-style colored boxes
-                box_color = _ocsort_color_for_id(tracker_id)
+                if int(tracker_id) not in crossed_ids:
+                    continue
+                # Uniform box color; override with red when highlighted
+                default_box_color = (0, 255, 255)  # yellow
+                box_color = (0, 0, 255) if highlight_remaining.get(int(tracker_id), 0) > 0 else default_box_color
                 cv2.rectangle(display_frame, (int(x1), int(y1)), (int(x2), int(y2)), box_color, 2)
-                cv2.putText(display_frame, f"ID {tracker_id}", (int(x1), int(y1) - 8),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, box_color, 2)
+                # No ID text on the box
             
-            # Draw the counting line on display frame (BoT-SORT-style magenta)
-            cv2.line(display_frame, tuple(line_start), tuple(line_end), (255, 0, 255), 2)
+            # Draw the counting line on display frame (courtyard-style: green)
+            cv2.line(display_frame, tuple(line_start), tuple(line_end), (0, 255, 0), 2)
             
             # Draw counting region on display frame
             region_points = []
@@ -563,7 +567,8 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
                 output_frame = cv2.resize(frame.copy(), (output_width, output_height))
                 
                 # Draw the counting line on output frame
-                cv2.line(output_frame, tuple(output_line_start), tuple(output_line_end), (255, 0, 255), 2)
+                # Draw the counting line on output frame (courtyard-style: green)
+                cv2.line(output_frame, tuple(output_line_start), tuple(output_line_end), (0, 255, 0), 2)
                 
                 # Draw counting region on output frame
                 output_region_points = []
@@ -588,18 +593,26 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
                 cv2.polylines(output_frame, [output_region_points], True, (255, 0, 255), 1)
                 
                 # Draw detections on output frame with scaled coordinates
-                for xyxy, tracker_id, _ in detection_info:
+                for xyxy, tracker_id in detection_info:
                     x1, y1, x2, y2 = xyxy
                     scaled_x1 = int(x1 * scale_x)
                     scaled_y1 = int(y1 * scale_y)
                     scaled_x2 = int(x2 * scale_x)
                     scaled_y2 = int(y2 * scale_y)
+                    if int(tracker_id) not in crossed_ids:
+                        continue
                     
-                    # OC-SORT-style colored boxes with scaled coordinates
-                    box_color = _ocsort_color_for_id(tracker_id)
+                    # Uniform box color; override with red when highlighted
+                    default_box_color = (0, 255, 255)  # yellow
+                    box_color = (0, 0, 255) if highlight_remaining.get(int(tracker_id), 0) > 0 else default_box_color
                     cv2.rectangle(output_frame, (scaled_x1, scaled_y1), (scaled_x2, scaled_y2), box_color, 2)
-                    cv2.putText(output_frame, f"ID {tracker_id}", (scaled_x1, scaled_y1 - 10),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5 * scale_y, box_color, max(1, int(2 * scale_y)))
+                    # No ID text on the box
+
+                # Decrement highlight timers for IDs present this frame
+                for _, tracker_id in detection_info:
+                    tid = int(tracker_id)
+                    if highlight_remaining.get(tid, 0) > 0:
+                        highlight_remaining[tid] -= 1
                 
                 # Draw counts with scaled font size and position (top-right corner)
                 count_text = f"Crossing In: {line_counter.up_count} | Crossing Out: {line_counter.down_count}"

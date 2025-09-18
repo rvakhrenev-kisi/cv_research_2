@@ -45,6 +45,7 @@ def main() -> None:
     default_bt = defaults_dir / "tracker" / "bytetrack.yaml"
     default_bs = defaults_dir / "tracker" / "botsort.yaml"
     default_oc = defaults_dir / "tracker" / "ocsort.yaml"
+    default_select = defaults_dir / "tracker_select.yaml"
 
     datasets = [p.name for p in input_dir.iterdir() if p.is_dir()]
     if not datasets:
@@ -65,8 +66,7 @@ def main() -> None:
         # selection file
         select_file = ds_cfg_dir / "tracker_select.yaml"
         if not select_file.exists():
-            ensure_dir(select_file.parent)
-            select_file.write_text("tracker_type: bytetrack\n", encoding="utf-8")
+            copy_if_missing(default_select, select_file)
         # video.yaml (per-dataset video processing params)
         copy_if_missing(default_video, ds_cfg_dir / "video.yaml")
 

@@ -45,13 +45,6 @@ class LineCounter:
         self.crossed_objects = set()
         self.up_count = 0
         self.down_count = 0
-    
-    def _ocsort_color_for_id(track_id: int):
-        h = (int(track_id) * 2654435761) & 0xFFFFFFFF
-        r = 50 + (h & 0xFF) % 206
-        g = 50 + ((h >> 8) & 0xFF) % 206
-        b = 50 + ((h >> 16) & 0xFF) % 206
-        return int(b), int(g), int(r)
 
     def get_distance_from_line(self, point):
         """Calculate the signed distance from a point to the line."""
@@ -136,6 +129,13 @@ class LineCounter:
                     return "down"
         
         return False
+
+def _ocsort_color_for_id(track_id: int):
+    h = (int(track_id) * 2654435761) & 0xFFFFFFFF
+    r = 50 + (h & 0xFF) % 206
+    g = 50 + ((h >> 8) & 0xFF) % 206
+    b = 50 + ((h >> 16) & 0xFF) % 206
+    return int(b), int(g), int(r)
 
 def setup_local_ffmpeg():
     """

@@ -46,6 +46,13 @@ class LineCounter:
         self.up_count = 0
         self.down_count = 0
     
+def _ocsort_color_for_id(track_id: int):
+    h = (int(track_id) * 2654435761) & 0xFFFFFFFF
+    r = 50 + (h & 0xFF) % 206
+    g = 50 + ((h >> 8) & 0xFF) % 206
+    b = 50 + ((h >> 16) & 0xFF) % 206
+    return int(b), int(g), int(r)
+
     def get_distance_from_line(self, point):
         """Calculate the signed distance from a point to the line."""
         point = np.array(point)
@@ -515,15 +522,15 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
                 detection_info.append((xyxy, tracker_id, color))
             
             # Draw on display frame (original resolution)
-            for xyxy, tracker_id, color in detection_info:
+            for xyxy, tracker_id, _ in detection_info:
                 x1, y1, x2, y2 = xyxy
-                # Draw bounding box
-                cv2.rectangle(display_frame, (int(x1), int(y1)), (int(x2), int(y2)), color, 2)
-                # Draw ID
-                cv2.putText(display_frame, f"ID: {tracker_id}", (int(x1), int(y1) - 10), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+                # OC-SORT-style colored boxes
+                box_color = _ocsort_color_for_id(tracker_id)
+                cv2.rectangle(display_frame, (int(x1), int(y1)), (int(x2), int(y2)), box_color, 2)
+                cv2.putText(display_frame, f"ID {tracker_id}", (int(x1), int(y1) - 8),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, box_color, 2)
             
-            # Draw the counting line on display frame
+            # Draw the counting line on display frame (BoT-SORT-style magenta)
             cv2.line(display_frame, tuple(line_start), tuple(line_end), (255, 0, 255), 2)
             
             # Draw counting region on display frame
@@ -581,19 +588,18 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
                 cv2.polylines(output_frame, [output_region_points], True, (255, 0, 255), 1)
                 
                 # Draw detections on output frame with scaled coordinates
-                for xyxy, tracker_id, color in detection_info:
+                for xyxy, tracker_id, _ in detection_info:
                     x1, y1, x2, y2 = xyxy
                     scaled_x1 = int(x1 * scale_x)
                     scaled_y1 = int(y1 * scale_y)
                     scaled_x2 = int(x2 * scale_x)
                     scaled_y2 = int(y2 * scale_y)
                     
-                    # Draw bounding box with scaled coordinates
-                    cv2.rectangle(output_frame, (scaled_x1, scaled_y1), (scaled_x2, scaled_y2), color, 2)
-                    
-                    # Draw ID with scaled coordinates
-                    cv2.putText(output_frame, f"ID: {tracker_id}", (scaled_x1, scaled_y1 - 10), 
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5 * scale_y, color, max(1, int(2 * scale_y)))
+                    # OC-SORT-style colored boxes with scaled coordinates
+                    box_color = _ocsort_color_for_id(tracker_id)
+                    cv2.rectangle(output_frame, (scaled_x1, scaled_y1), (scaled_x2, scaled_y2), box_color, 2)
+                    cv2.putText(output_frame, f"ID {tracker_id}", (scaled_x1, scaled_y1 - 10),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5 * scale_y, box_color, max(1, int(2 * scale_y)))
                 
                 # Draw counts with scaled font size and position (top-right corner)
                 count_text = f"Crossing In: {line_counter.up_count} | Crossing Out: {line_counter.down_count}"

@@ -365,6 +365,8 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
     highlight_remaining = defaultdict(int)
     # Track IDs that have crossed at least once (always show these)
     crossed_ids = set()
+    # Track first-detected frame index per ID to allow backfill display
+    first_seen_frame = {}
 
     # Initialize tracker based on type
     if tracker_type == "ocsort":
@@ -493,6 +495,10 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
                 tracker_id = det_ids[i] if i < len(det_ids) else None
                 if tracker_id is None:
                     continue
+                # Record first-seen frame for each tracker_id
+                tid = int(tracker_id)
+                if tid not in first_seen_frame:
+                    first_seen_frame[tid] = frame_count
                     
                 # Calculate point of interest for crossing check based on dataset
                 x1, y1, x2, y2 = xyxy
@@ -514,7 +520,7 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
                 
                 # If crossing detected, trigger short red highlight for this ID
                 if crossing in ("up", "down"):
-                    highlight_remaining[int(tracker_id)] = 8
+                    highlight_remaining[int(tracker_id)] = 10
                     crossed_ids.add(int(tracker_id))
                     if verbose:
                         arrow = "UP" if crossing == "up" else "DOWN"
@@ -526,29 +532,20 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
             # Draw on display frame (original resolution)
             for xyxy, tracker_id in detection_info:
                 x1, y1, x2, y2 = xyxy
-                if int(tracker_id) not in crossed_ids:
+                tid = int(tracker_id)
+                # Show if crossed or if this ID has crossed later (backfill from first seen)
+                if tid not in crossed_ids:
                     continue
                 # Uniform box color; override with red when highlighted
                 default_box_color = (0, 255, 255)  # yellow
-                box_color = (0, 0, 255) if highlight_remaining.get(int(tracker_id), 0) > 0 else default_box_color
+                box_color = (0, 0, 255) if highlight_remaining.get(tid, 0) > 0 else default_box_color
                 cv2.rectangle(display_frame, (int(x1), int(y1)), (int(x2), int(y2)), box_color, 2)
                 # No ID text on the box
             
             # Draw the counting line on display frame (courtyard-style: green)
             cv2.line(display_frame, tuple(line_start), tuple(line_end), (0, 255, 0), 2)
             
-            # Draw counting region on display frame
-            region_points = []
-            for t in np.linspace(0, 1, 100):
-                point = np.array(line_start) + t * (np.array(line_end) - np.array(line_start))
-                region_points.append(point + line_counter.normal_vector * line_counter.counting_region)
-            
-            for t in np.linspace(1, 0, 100):
-                point = np.array(line_start) + t * (np.array(line_end) - np.array(line_start))
-                region_points.append(point - line_counter.normal_vector * line_counter.counting_region)
-            
-            region_points = np.array(region_points, dtype=np.int32)
-            cv2.polylines(display_frame, [region_points], True, (255, 0, 255), 1)
+            # Remove magenta counting region box around the line
             
             # Draw counts on display frame (top-right corner)
             frame_height, frame_width = display_frame.shape[:2]
@@ -570,27 +567,7 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
                 # Draw the counting line on output frame (courtyard-style: green)
                 cv2.line(output_frame, tuple(output_line_start), tuple(output_line_end), (0, 255, 0), 2)
                 
-                # Draw counting region on output frame
-                output_region_points = []
-                # Scale the counting region
-                scaled_counting_region = int(line_counter.counting_region * scale_y)
-                
-                # Calculate normal vector for output resolution
-                output_line_vector = np.array(output_line_end) - np.array(output_line_start)
-                output_line_length = np.linalg.norm(output_line_vector)
-                output_unit_line_vector = output_line_vector / output_line_length
-                output_normal_vector = np.array([-output_unit_line_vector[1], output_unit_line_vector[0]])
-                
-                for t in np.linspace(0, 1, 100):
-                    point = np.array(output_line_start) + t * (np.array(output_line_end) - np.array(output_line_start))
-                    output_region_points.append(point + output_normal_vector * scaled_counting_region)
-                
-                for t in np.linspace(1, 0, 100):
-                    point = np.array(output_line_start) + t * (np.array(output_line_end) - np.array(output_line_start))
-                    output_region_points.append(point - output_normal_vector * scaled_counting_region)
-                
-                output_region_points = np.array(output_region_points, dtype=np.int32)
-                cv2.polylines(output_frame, [output_region_points], True, (255, 0, 255), 1)
+                # Remove magenta counting region box around the line
                 
                 # Draw detections on output frame with scaled coordinates
                 for xyxy, tracker_id in detection_info:
@@ -599,12 +576,13 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
                     scaled_y1 = int(y1 * scale_y)
                     scaled_x2 = int(x2 * scale_x)
                     scaled_y2 = int(y2 * scale_y)
-                    if int(tracker_id) not in crossed_ids:
+                    tid = int(tracker_id)
+                    if tid not in crossed_ids:
                         continue
                     
                     # Uniform box color; override with red when highlighted
                     default_box_color = (0, 255, 255)  # yellow
-                    box_color = (0, 0, 255) if highlight_remaining.get(int(tracker_id), 0) > 0 else default_box_color
+                    box_color = (0, 0, 255) if highlight_remaining.get(tid, 0) > 0 else default_box_color
                     cv2.rectangle(output_frame, (scaled_x1, scaled_y1), (scaled_x2, scaled_y2), box_color, 2)
                     # No ID text on the box
 

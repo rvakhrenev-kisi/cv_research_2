@@ -53,89 +53,89 @@ def _ocsort_color_for_id(track_id: int):
     b = 50 + ((h >> 16) & 0xFF) % 206
     return int(b), int(g), int(r)
 
-    def get_distance_from_line(self, point):
-        """Calculate the signed distance from a point to the line."""
-        point = np.array(point)
-        return np.dot(point - self.start_point, self.normal_vector)
+def get_distance_from_line(self, point):
+    """Calculate the signed distance from a point to the line."""
+    point = np.array(point)
+    return np.dot(point - self.start_point, self.normal_vector)
+
+def is_point_in_counting_region(self, point):
+    """Check if a point is within the counting region around the line."""
+    # Project the point onto the line
+    point = np.array(point)
+    point_vector = point - self.start_point
+    projection_length = np.dot(point_vector, self.unit_line_vector)
     
-    def is_point_in_counting_region(self, point):
-        """Check if a point is within the counting region around the line."""
-        # Project the point onto the line
-        point = np.array(point)
-        point_vector = point - self.start_point
-        projection_length = np.dot(point_vector, self.unit_line_vector)
-        
-        # Check if projection is within line segment
-        if projection_length < 0 or projection_length > self.line_length:
-            return False
-        
-        # Check distance from line
-        distance = abs(self.get_distance_from_line(point))
-        return distance <= self.counting_region
-    
-    def update(self, object_id, center_point):
-        """
-        Update tracking for an object and check if it crossed the line.
-        
-        Args:
-            object_id: Unique identifier for the object
-            center_point: Current center point of the object (x, y)
-            
-        Returns:
-            "up", "down", or False if no crossing occurred
-        """
-        # Allow multiple crossings per person - removed the crossed_objects check
-        
-        # Add current position to track
-        self.object_tracks[object_id].append(center_point)
-        
-        # Need at least 2 points to detect crossing
-        if len(self.object_tracks[object_id]) < 2:
-            return False
-        
-        # Get current and previous positions
-        current_pos = np.array(self.object_tracks[object_id][-1])
-        prev_pos = np.array(self.object_tracks[object_id][-2])
-        
-        # Calculate distances from line
-        current_distance = self.get_distance_from_line(current_pos)
-        prev_distance = self.get_distance_from_line(prev_pos)
-        
-        # Check if the object crossed the line (sign change in distance)
-        # At least one point should be within the counting region to avoid false positives
-        # But also check if the person is moving towards the line from far away
-        if (current_distance * prev_distance <= 0 and 
-            (abs(current_distance) <= self.counting_region or 
-             abs(prev_distance) <= self.counting_region or
-             # Also detect crossings when person is moving towards the line from far away
-             (abs(current_distance) <= self.counting_region * 2 and 
-              abs(prev_distance) <= self.counting_region * 2 and
-              abs(current_distance - prev_distance) > self.counting_region))):
-            
-            # Allow multiple crossings - don't add to crossed_objects
-            
-            # Determine direction of crossing
-            if self.direction_side is not None:
-                # Use user-defined direction arrow to determine "in" vs "out"
-                # If moving towards the direction side, it's "in" (up)
-                # If moving away from the direction side, it's "out" (down)
-                if (current_distance > prev_distance and self.direction_side > 0) or \
-                   (current_distance < prev_distance and self.direction_side < 0):
-                    self.up_count += 1
-                    return "up"
-                else:
-                    self.down_count += 1
-                    return "down"
-            else:
-                # Fallback to original logic if no direction specified
-                if current_distance > prev_distance:
-                    self.up_count += 1
-                    return "up"
-                else:
-                    self.down_count += 1
-                    return "down"
-        
+    # Check if projection is within line segment
+    if projection_length < 0 or projection_length > self.line_length:
         return False
+    
+    # Check distance from line
+    distance = abs(self.get_distance_from_line(point))
+    return distance <= self.counting_region
+
+def update(self, object_id, center_point):
+    """
+    Update tracking for an object and check if it crossed the line.
+    
+    Args:
+        object_id: Unique identifier for the object
+        center_point: Current center point of the object (x, y)
+        
+    Returns:
+        "up", "down", or False if no crossing occurred
+    """
+    # Allow multiple crossings per person - removed the crossed_objects check
+    
+    # Add current position to track
+    self.object_tracks[object_id].append(center_point)
+    
+    # Need at least 2 points to detect crossing
+    if len(self.object_tracks[object_id]) < 2:
+        return False
+    
+    # Get current and previous positions
+    current_pos = np.array(self.object_tracks[object_id][-1])
+    prev_pos = np.array(self.object_tracks[object_id][-2])
+    
+    # Calculate distances from line
+    current_distance = self.get_distance_from_line(current_pos)
+    prev_distance = self.get_distance_from_line(prev_pos)
+    
+    # Check if the object crossed the line (sign change in distance)
+    # At least one point should be within the counting region to avoid false positives
+    # But also check if the person is moving towards the line from far away
+    if (current_distance * prev_distance <= 0 and 
+        (abs(current_distance) <= self.counting_region or 
+            abs(prev_distance) <= self.counting_region or
+            # Also detect crossings when person is moving towards the line from far away
+            (abs(current_distance) <= self.counting_region * 2 and 
+            abs(prev_distance) <= self.counting_region * 2 and
+            abs(current_distance - prev_distance) > self.counting_region))):
+        
+        # Allow multiple crossings - don't add to crossed_objects
+        
+        # Determine direction of crossing
+        if self.direction_side is not None:
+            # Use user-defined direction arrow to determine "in" vs "out"
+            # If moving towards the direction side, it's "in" (up)
+            # If moving away from the direction side, it's "out" (down)
+            if (current_distance > prev_distance and self.direction_side > 0) or \
+                (current_distance < prev_distance and self.direction_side < 0):
+                self.up_count += 1
+                return "up"
+            else:
+                self.down_count += 1
+                return "down"
+        else:
+            # Fallback to original logic if no direction specified
+            if current_distance > prev_distance:
+                self.up_count += 1
+                return "up"
+            else:
+                self.down_count += 1
+                return "down"
+    
+    return False
 
 def setup_local_ffmpeg():
     """

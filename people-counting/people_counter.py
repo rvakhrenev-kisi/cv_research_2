@@ -201,12 +201,14 @@ def parse_arguments():
     parser.add_argument("--classes", type=int, nargs="+", default=[0], help="Classes to detect (default: 0 for person)")
     parser.add_argument("--dataset", type=str, default="unknown", help="Dataset name to control line-cross logic (e.g., courtyard/cisco/vortex)")
     parser.add_argument("--tracker-yaml", type=str, default="", help="Optional Ultralytics tracker YAML (e.g., trackers/botsort.yaml)")
+    parser.add_argument("--tracker-type", type=str, choices=["bytetrack", "botsort", "ocsort"], default="bytetrack", 
+                        help="Tracker type to use (bytetrack, botsort, ocsort)")
     return parser.parse_args()
 
 def process_video(video_path, line_start, line_end, model_path, confidence=0.3, classes=[0], 
                  output_path="object_counting_output.mp4", show=False, verbose=False, output_height=480,
                  iou=0.3, imgsz=640, agnostic_nms=False, track_high_thresh=0.6, track_low_thresh=0.1, 
-                 new_track_thresh=0.7, match_thresh=0.8, dataset="unknown", direction_point=None):
+                 new_track_thresh=0.7, match_thresh=0.8, dataset="unknown", direction_point=None, tracker_type="bytetrack"):
     """
     Process a video to count people crossing a line with progress tracking.
     
@@ -352,27 +354,60 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
     
     print(f"✅ Model initialization completed")
     
-    # Initialize tracker with configurable parameters
-    # Note: ByteTrack parameters may vary by supervision version
-    try:
-        # Try with custom parameters first
-        tracker = sv.ByteTrack(
-            track_high_thresh=track_high_thresh,
-            track_low_thresh=track_low_thresh,
-            new_track_thresh=new_track_thresh,
-            match_thresh=match_thresh,
-            frame_rate=fps
+    # Initialize tracker based on type
+    if tracker_type == "ocsort":
+        # Use our custom OC-SORT wrapper
+        from trackers import OCSortWrapper
+        tracker = OCSortWrapper(
+            det_thresh=confidence,
+            max_age=30,
+            min_hits=3,
+            iou_threshold=0.3,
+            delta_t=3,
+            asso_func="iou",
+            inertia=0.2,
+            use_byte=False
         )
-        print(f"   Using ByteTrack with custom parameters")
-    except TypeError:
-        try:
-            # Try with frame_rate parameter only
-            tracker = sv.ByteTrack(frame_rate=fps)
-            print("   Using ByteTrack with frame_rate only")
-        except TypeError:
-            # Fallback to basic initialization
-            tracker = sv.ByteTrack()
-            print("   Using basic ByteTrack initialization")
+        print(f"   Using OC-SORT tracker")
+    else:
+        # Use supervision trackers (ByteTrack or BoT-SORT)
+        if tracker_type == "botsort":
+            try:
+                tracker = sv.BoTSORT(
+                    track_high_thresh=track_high_thresh,
+                    track_low_thresh=track_low_thresh,
+                    new_track_thresh=new_track_thresh,
+                    match_thresh=match_thresh,
+                    frame_rate=fps
+                )
+                print(f"   Using BoT-SORT with custom parameters")
+            except (TypeError, AttributeError):
+                try:
+                    tracker = sv.BoTSORT(frame_rate=fps)
+                    print("   Using BoT-SORT with frame_rate only")
+                except (TypeError, AttributeError):
+                    tracker = sv.BoTSORT()
+                    print("   Using basic BoT-SORT initialization")
+        else:  # bytetrack
+            try:
+                # Try with custom parameters first
+                tracker = sv.ByteTrack(
+                    track_high_thresh=track_high_thresh,
+                    track_low_thresh=track_low_thresh,
+                    new_track_thresh=new_track_thresh,
+                    match_thresh=match_thresh,
+                    frame_rate=fps
+                )
+                print(f"   Using ByteTrack with custom parameters")
+            except TypeError:
+                try:
+                    # Try with frame_rate parameter only
+                    tracker = sv.ByteTrack(frame_rate=fps)
+                    print("   Using ByteTrack with frame_rate only")
+                except TypeError:
+                    # Fallback to basic initialization
+                    tracker = sv.ByteTrack()
+                    print("   Using basic ByteTrack initialization")
     
     # Get total frame count for progress bar
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -776,7 +811,8 @@ def main():
         new_track_thresh=args.new_track_thresh,
         match_thresh=args.match_thresh,
         dataset=args.dataset,
-        direction_point=args.direction_point
+        direction_point=args.direction_point,
+        tracker_type=args.tracker_type
     )
     
     # Print results

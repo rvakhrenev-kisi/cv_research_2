@@ -237,10 +237,16 @@ class BatchTailgatingDetectorV2:
                 tracker_yaml = self.config_loader.get_dataset_tracker_yaml(dataset)
                 cmd.extend(["--tracker-yaml", tracker_yaml])
             else:
-                cmd.extend(["--track-high-thresh", str(self.tracking_config.get("track_high_thresh", 0.6))])
-                cmd.extend(["--track-low-thresh", str(self.tracking_config.get("track_low_thresh", 0.1))])
-                cmd.extend(["--new-track-thresh", str(self.tracking_config.get("new_track_thresh", 0.7))])
-                cmd.extend(["--match-thresh", str(self.tracking_config.get("match_thresh", 0.8))])
+                # Get tracker type from dataset config or default to bytetrack
+                tracker_type = ds_detection.get("tracker_type", "bytetrack")
+                cmd.extend(["--tracker-type", tracker_type])
+                
+                # Add tracking params for non-ultralytics trackers
+                if tracker_type != "ocsort":
+                    cmd.extend(["--track-high-thresh", str(self.tracking_config.get("track_high_thresh", 0.6))])
+                    cmd.extend(["--track-low-thresh", str(self.tracking_config.get("track_low_thresh", 0.1))])
+                    cmd.extend(["--new-track-thresh", str(self.tracking_config.get("new_track_thresh", 0.7))])
+                    cmd.extend(["--match-thresh", str(self.tracking_config.get("match_thresh", 0.8))])
             
             # Add verbose flag if enabled
             if verbose:

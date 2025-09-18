@@ -368,6 +368,63 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
     # Track first-detected frame index per ID to allow backfill display
     first_seen_frame = {}
 
+    # Optional: two-pass to know crossing IDs upfront for pre-cross display
+    crossing_ids_precomputed = set()
+    try:
+        cap_probe = cv2.VideoCapture(video_path)
+        if not cap_probe.isOpened():
+            raise RuntimeError("Could not open video for probe")
+        frame_idx_probe = 0
+        # Minimal line counter for probe
+        probe_counter = LineCounter(line_start, line_end, direction_point)
+        while cap_probe.isOpened():
+            ret_p, frm = cap_probe.read()
+            if not ret_p:
+                break
+            frame_idx_probe += 1
+            # Inference
+            try:
+                res_p = model(frm, conf=float(confidence), classes=classes, verbose=False, imgsz=imgsz, iou=iou, agnostic_nms=agnostic_nms, device=device)
+            except Exception:
+                break
+            det_p = sv.Detections.from_ultralytics(res_p[0])
+            # Track
+            if hasattr(tracker, "update_with_detections"):
+                det_p = tracker.update_with_detections(det_p, img_h=int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)), img_w=int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), input_size=imgsz)
+            else:
+                det_p = tracker.update_with_detections(det_p)
+            # Examine
+            det_ids_p = det_p.tracker_id if getattr(det_p, "tracker_id", None) is not None else []
+            for i_p, tid_p in enumerate(det_ids_p):
+                if tid_p is None:
+                    continue
+                xyxy_p = det_p.xyxy[i_p]
+                x1p, y1p, x2p, y2p = xyxy_p
+                if dataset.lower() == "courtyard":
+                    cxp = (x1p + x2p) / 2
+                    cyp = y2p
+                else:
+                    cxp = (x1p + x2p) / 2
+                    cyp = (y1p + y2p) / 2
+                crossing = probe_counter.update(int(tid_p), (cxp, cyp))
+                if crossing in ("up", "down"):
+                    crossing_ids_precomputed.add(int(tid_p))
+        cap_probe.release()
+        # Recreate tracker for main pass to reset state
+        if tracker_type == "ocsort":
+            from trackers import OCSortWrapper
+            tracker = OCSortWrapper(det_thresh=confidence, max_age=30, min_hits=3, iou_threshold=0.3, delta_t=3, asso_func="iou", inertia=0.2, use_byte=False)
+        else:
+            try:
+                if tracker_type == "botsort":
+                    tracker = sv.BoTSORT(frame_rate=fps)
+                else:
+                    tracker = sv.ByteTrack(frame_rate=fps)
+            except Exception:
+                tracker = sv.ByteTrack()
+    except Exception:
+        crossing_ids_precomputed = set()
+
     # Initialize tracker based on type
     if tracker_type == "ocsort":
         # Use our custom OC-SORT wrapper
@@ -533,9 +590,6 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
             for xyxy, tracker_id in detection_info:
                 x1, y1, x2, y2 = xyxy
                 tid = int(tracker_id)
-                # Show if crossed or if this ID has crossed later (backfill from first seen)
-                if tid not in crossed_ids:
-                    continue
                 # Uniform box color; override with red when highlighted
                 default_box_color = (0, 255, 255)  # yellow
                 box_color = (0, 0, 255) if highlight_remaining.get(tid, 0) > 0 else default_box_color
@@ -577,8 +631,6 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
                     scaled_x2 = int(x2 * scale_x)
                     scaled_y2 = int(y2 * scale_y)
                     tid = int(tracker_id)
-                    if tid not in crossed_ids:
-                        continue
                     
                     # Uniform box color; override with red when highlighted
                     default_box_color = (0, 255, 255)  # yellow
@@ -587,10 +639,11 @@ def process_video(video_path, line_start, line_end, model_path, confidence=0.3, 
                     # No ID text on the box
 
                 # Decrement highlight timers for IDs present this frame
-                for _, tracker_id in detection_info:
-                    tid = int(tracker_id)
-                    if highlight_remaining.get(tid, 0) > 0:
-                        highlight_remaining[tid] -= 1
+            # Decrement highlight timers for IDs present this frame
+            for _, tracker_id in detection_info:
+                tid = int(tracker_id)
+                if highlight_remaining.get(tid, 0) > 0:
+                    highlight_remaining[tid] -= 1
                 
                 # Draw counts with scaled font size and position (top-right corner)
                 count_text = f"Crossing In: {line_counter.up_count} | Crossing Out: {line_counter.down_count}"

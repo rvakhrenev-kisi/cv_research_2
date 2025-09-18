@@ -780,73 +780,63 @@ def main():
             verbose=args.verbose,
         )
 
+        # Visualization state: short red highlight after crossings
+        from collections import defaultdict as _dd
+        highlight_remaining = _dd(int)
         frame_count = 0
         for res in stream:
             frame = res.orig_img
             frame_count += 1
-            
-            # Get tracking results
-            if res.boxes is not None and len(res.boxes) > 0:
-                # Process each tracked object
-                for box in res.boxes:
-                    if box.id is not None:  # Only process tracked objects
-                        # Get bounding box coordinates
-                        x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
-                        
-                        # Calculate point of interest for crossing check based on dataset
-                        if args.dataset.lower() == "courtyard":
-                            # Use bottom-center of the box
-                            center_x = (x1 + x2) / 2
-                            center_y = y2
-                        else:
-                            # Use middle of the box (default for cisco/vortex)
-                            center_x = (x1 + x2) / 2
-                            center_y = (y1 + y2) / 2
-                        
-                        # Update line counter
-                        crossing = line_counter.update(int(box.id), (center_x, center_y))
-                        
-                        # Additional debug info for line crossing analysis
-                        if args.verbose and frame_count <= 20:  # Show detailed info for first 20 frames
-                            distance = line_counter.get_distance_from_line((center_x, center_y))
-                            print(f"    -> Distance from line: {distance:.1f}, Line y=532, Person y={center_y:.1f}")
-                        
-                        # Debug output for all frames when verbose
-                        if args.verbose:
-                            print(f"Frame {frame_count}, ID {int(box.id)}: center=({center_x:.1f}, {center_y:.1f}), crossing={crossing}")
-                        
-                        if crossing == "up" and args.verbose:
-                            print(f"  -> UP crossing detected for ID {int(box.id)}")
-                        elif crossing == "down" and args.verbose:
-                            print(f"  -> DOWN crossing detected for ID {int(box.id)}")
-            
-            # Render tracker annotations (IDs) onto frame
-            annotated = res.plot()  # includes boxes and IDs
-            
-            # Resize if needed
+            # Prepare target frame (resize if needed)
+            targ = frame.copy()
             if out_h != orig_height:
-                annotated = cv2.resize(annotated, (out_w, out_h))
-                # scale line
+                targ = cv2.resize(targ, (out_w, out_h))
                 sx1, sy1 = int(lx1 * scale_x), int(ly1 * scale_y)
                 sx2, sy2 = int(lx2 * scale_x), int(ly2 * scale_y)
             else:
                 sx1, sy1, sx2, sy2 = lx1, ly1, lx2, ly2
-            
-            # Draw counting line for visual consistency
-            cv2.line(annotated, (sx1, sy1), (sx2, sy2), (0, 255, 255), 3)
-            
+
+            # Draw green counting line
+            cv2.line(targ, (sx1, sy1), (sx2, sy2), (0, 255, 0), 2)
+
+            # Extract boxes and ids
+            boxes = getattr(res, "boxes", None)
+            if boxes is not None and len(boxes) > 0:
+                for box in boxes:
+                    if box.id is None:
+                        continue
+                    x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
+                    # scale to target
+                    dx1, dy1 = int(x1 * scale_x), int(y1 * scale_y)
+                    dx2, dy2 = int(x2 * scale_x), int(y2 * scale_y)
+                    # point of interest for counting (courtyard: bottom-center)
+                    if args.dataset.lower() == "courtyard":
+                        cx, cy = (dx1 + dx2) // 2, dy2
+                    else:
+                        cx, cy = (dx1 + dx2) // 2, (dy1 + dy2) // 2
+                    crossing = line_counter.update(int(box.id), (cx / scale_x, cy / scale_y))
+                    if crossing in ("up", "down"):
+                        highlight_remaining[int(box.id)] = 10
+                    default_box_color = (0, 255, 255)
+                    color = (0, 0, 255) if highlight_remaining.get(int(box.id), 0) > 0 else default_box_color
+                    cv2.rectangle(targ, (dx1, dy1), (dx2, dy2), color, 2)
+
+            # Decrement highlights for ids present this frame
+            if boxes is not None and len(boxes) > 0:
+                for box in boxes:
+                    if box.id is not None and highlight_remaining.get(int(box.id), 0) > 0:
+                        highlight_remaining[int(box.id)] -= 1
+
             # Draw counts on frame (top-right corner)
-            frame_height, frame_width = annotated.shape[:2]
+            fh, fw = targ.shape[:2]
             count_text = f"Crossing In: {line_counter.up_count} | Crossing Out: {line_counter.down_count}"
-            text_size = cv2.getTextSize(count_text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)[0]
-            text_x = frame_width - text_size[0] - 10
-            text_y = 30
-            
-            # Draw background rectangle for better visibility
-            cv2.rectangle(annotated, (text_x - 5, text_y - 25), (text_x + text_size[0] + 5, text_y + 5), (0, 0, 0), -1)
-            cv2.putText(annotated, count_text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
-            
-            writer.write(annotated)
+            tsz = cv2.getTextSize(count_text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)[0]
+            tx = fw - tsz[0] - 10
+            ty = 30
+            cv2.rectangle(targ, (tx - 5, ty - 25), (tx + tsz[0] + 5, ty + 5), (0, 0, 0), -1)
+            cv2.putText(targ, count_text, (tx, ty), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+
+            writer.write(targ)
 
         writer.release()
         cap.release()

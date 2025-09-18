@@ -1,0 +1,11 @@
+tracker_type: ocsort
+det_thresh: 0.12
+max_age: 40
+min_hits: 2
+iou_threshold: 0.25
+asso_func: iou
+delta_t: 3
+inertia: 0.4
+use_byte: false
+
+

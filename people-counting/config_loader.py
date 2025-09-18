@@ -174,16 +174,26 @@ class ConfigLoader:
     def get_dataset_tracker_yaml(self, dataset: str) -> str:
         """Return tracker config path for selected tracker type for this dataset."""
         import yaml as _yaml
-        # Read tracker type from dataset detection.yaml
-        det_file = Path("configs") / "datasets" / dataset / "detection.yaml"
+        # Read tracker type from dataset tracker_select.yaml (preferred)
         tracker_type = "bytetrack"
-        if det_file.exists():
+        select_file = Path("configs") / "datasets" / dataset / "tracker_select.yaml"
+        if select_file.exists():
             try:
-                with open(det_file, 'r') as f:
-                    det_cfg = _yaml.safe_load(f) or {}
-                    tracker_type = str(det_cfg.get("tracker_type", tracker_type)).lower()
+                with open(select_file, 'r') as f:
+                    sel_cfg = _yaml.safe_load(f) or {}
+                    tracker_type = str(sel_cfg.get("tracker_type", tracker_type)).lower()
             except Exception:
                 pass
+        else:
+            # Fallback to legacy detection.yaml location if selection file not present
+            det_file = Path("configs") / "datasets" / dataset / "detection.yaml"
+            if det_file.exists():
+                try:
+                    with open(det_file, 'r') as f:
+                        det_cfg = _yaml.safe_load(f) or {}
+                        tracker_type = str(det_cfg.get("tracker_type", tracker_type)).lower()
+                except Exception:
+                    pass
 
         base = Path("configs") / "datasets" / dataset
         candidates = {

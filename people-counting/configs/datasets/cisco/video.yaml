@@ -1,6 +1,0 @@
-output_height: 0  # 0 keeps original input resolution to maintain box alignment
-verbose: true
-
-output_height: 0
-verbose: true
-

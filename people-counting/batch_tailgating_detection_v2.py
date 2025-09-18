@@ -237,16 +237,31 @@ class BatchTailgatingDetectorV2:
                 tracker_yaml = self.config_loader.get_dataset_tracker_yaml(dataset)
                 cmd.extend(["--tracker-yaml", tracker_yaml])
             else:
-                # Get tracker type from dataset config or default to bytetrack
-                tracker_type = ds_detection.get("tracker_type", "bytetrack")
+                # Load tracker config from dataset tracker.yaml
+                import yaml as _yaml
+                ds_tracker_path = self.config_loader.get_dataset_tracker_yaml(dataset)
+                with open(ds_tracker_path, 'r') as f:
+                    tracker_cfg = _yaml.safe_load(f) or {}
+                # Select tracker type
+                tracker_type = tracker_cfg.get("tracker_type", "bytetrack")
                 cmd.extend(["--tracker-type", tracker_type])
                 
-                # Add tracking params for non-ultralytics trackers
-                if tracker_type != "ocsort":
-                    cmd.extend(["--track-high-thresh", str(self.tracking_config.get("track_high_thresh", 0.6))])
-                    cmd.extend(["--track-low-thresh", str(self.tracking_config.get("track_low_thresh", 0.1))])
-                    cmd.extend(["--new-track-thresh", str(self.tracking_config.get("new_track_thresh", 0.7))])
-                    cmd.extend(["--match-thresh", str(self.tracking_config.get("match_thresh", 0.8))])
+                # Add tracking params based on selected tracker section
+                if tracker_type == "bytetrack":
+                    bt = tracker_cfg.get("bytetrack", {})
+                    cmd.extend(["--track-high-thresh", str(bt.get("track_high_thresh", 0.6))])
+                    cmd.extend(["--track-low-thresh", str(bt.get("track_low_thresh", 0.1))])
+                    cmd.extend(["--new-track-thresh", str(bt.get("new_track_thresh", 0.7))])
+                    cmd.extend(["--match-thresh", str(bt.get("match_thresh", 0.8))])
+                elif tracker_type == "botsort":
+                    bs = tracker_cfg.get("botsort", {})
+                    cmd.extend(["--track-high-thresh", str(bs.get("track_high_thresh", 0.6))])
+                    cmd.extend(["--track-low-thresh", str(bs.get("track_low_thresh", 0.1))])
+                    cmd.extend(["--new-track-thresh", str(bs.get("new_track_thresh", 0.7))])
+                    cmd.extend(["--match-thresh", str(bs.get("match_thresh", 0.8))])
+                elif tracker_type == "ocsort":
+                    # OC-SORT uses confidence as det_thresh internally; no extra CLI flags required
+                    pass
             
             # Add verbose flag if enabled
             if verbose:
